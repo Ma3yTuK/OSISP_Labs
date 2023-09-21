@@ -1,0 +1,420 @@
+#include "GraphicsScene.h"
+#include "helper_functions.h"
+
+const PCWSTR GraphicsScene::DEFAULT_CLASS_NAME = L"Graphics";
+const D2D1_COLOR_F GraphicsScene::DEFAULT_BORDER_COLOR = D2D1::ColorF(D2D1::ColorF::Black);
+const D2D1_COLOR_F GraphicsScene::DEFAULT_SELECTION_COLOR = D2D1::ColorF(D2D1::ColorF::Red);
+const float GraphicsScene::DEFAULT_FIGURE_SIZE = 2.0F;
+
+GraphicsScene::GraphicsScene(Mode* mode, Figure* figure, D2D1_COLOR_F* color,
+    ID2D1Factory* pFactory, PCWSTR CLASS_NAME, D2D1_COLOR_F borderColor, D2D1_COLOR_F selectionColor) :
+    BaseWindow<GraphicsScene>(CLASS_NAME), pFactory(pFactory), mode(mode), figure(figure), color(color),
+    borderColor(borderColor), selectionColor(selectionColor), pRenderTarget(NULL), pBrush(NULL), ptMouse(D2D1::Point2F()), selection(figures.end()),
+    tracking(false), trackingStruct{ sizeof(trackingStruct), NULL, NULL, NULL }
+{
+}
+
+std::shared_ptr<BaseFigure> GraphicsScene::Selection()
+{
+    if (selection == figures.end())
+    {
+        return nullptr;
+    }
+    else
+    {
+        return (*selection);
+    }
+}
+
+void GraphicsScene::ClearSelection()
+{
+    if (Selection())
+    {
+        Selection()->SetBorderColor(DEFAULT_BORDER_COLOR);
+    }
+    selection = figures.end();
+}
+
+BOOL GraphicsScene::Select(D2D1_POINT_2F hitPoint)
+{
+    ClearSelection();
+    for (auto i = figures.rbegin(); i != figures.rend(); ++i)
+    {
+        if ((*i)->HitTest(hitPoint))
+        {
+            selection = (++i).base();
+            Selection()->SetBorderColor(DEFAULT_SELECTION_COLOR);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+HRESULT GraphicsScene::CreateGraphicsResources()
+{
+    HRESULT hr = S_OK;
+    if (pRenderTarget == NULL)
+    {
+        RECT rc;
+        GetClientRect(m_hwnd, &rc);
+
+        D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
+
+        hr = pFactory->CreateHwndRenderTarget(
+            D2D1::RenderTargetProperties(),
+            D2D1::HwndRenderTargetProperties(m_hwnd, size),
+            &pRenderTarget);
+
+        if (SUCCEEDED(hr))
+        {
+            const D2D1_COLOR_F color = D2D1::ColorF(1.0f, 1.0f, 0);
+            hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+        }
+    }
+    return hr;
+}
+
+void GraphicsScene::DiscardGraphicsResources()
+{
+    SafeRelease(&pRenderTarget);
+    SafeRelease(&pBrush);
+}
+
+void GraphicsScene::InsertFigure(float dipX, float dipY)
+{
+    ClearSelection();
+    switch (*figure)
+    {
+    case Figure::Ellipse:
+    {
+        ptMouse = D2D1::Point2F(dipX, dipY);
+        D2D1_ELLIPSE ellipse = D2D1::Ellipse(ptMouse, DEFAULT_FIGURE_SIZE, DEFAULT_FIGURE_SIZE);
+        selection = figures.insert(
+            figures.end(),
+            std::shared_ptr<BaseFigure>(new EllipseFigure(ellipse, *color, DEFAULT_SELECTION_COLOR)));
+        break;
+    }
+    case Figure::Rect:
+    {
+        ptMouse = D2D1::Point2F(dipX, dipY);
+        D2D1_RECT_F rect = D2D1::Rect(ptMouse.x - DEFAULT_FIGURE_SIZE, ptMouse.y - DEFAULT_FIGURE_SIZE, ptMouse.x + DEFAULT_FIGURE_SIZE, ptMouse.y + DEFAULT_FIGURE_SIZE);
+        selection = figures.insert(
+            figures.end(),
+            std::shared_ptr<BaseFigure>(new RectFigure(rect, *color, DEFAULT_SELECTION_COLOR)));
+    }
+    }
+}
+
+void GraphicsScene::ColorChanged()
+{
+    if ((*mode == Mode::SelectMode) && Selection())
+        Selection()->SetColor(*color);
+    InvalidateRect(m_hwnd, NULL, FALSE);
+}
+
+void GraphicsScene::Resize()
+{
+    if (pRenderTarget != NULL)
+    {
+        RECT rc;
+        GetClientRect(m_hwnd, &rc);
+
+        D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
+
+        pRenderTarget->Resize(size);
+
+        InvalidateRect(m_hwnd, NULL, FALSE);
+    }
+}
+
+void GraphicsScene::OnPaint()
+{
+    HRESULT hr = CreateGraphicsResources();
+    if (SUCCEEDED(hr))
+    {
+        PAINTSTRUCT ps;
+        BeginPaint(m_hwnd, &ps);
+
+        pRenderTarget->BeginDraw();
+
+        pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::SkyBlue));
+
+        for (auto i = figures.begin(); i != figures.end(); ++i)
+        {
+            (*i)->Draw(pRenderTarget, pBrush);
+        }
+
+        hr = pRenderTarget->EndDraw();
+        if (FAILED(hr) || hr == D2DERR_RECREATE_TARGET)
+        {
+            DiscardGraphicsResources();
+        }
+        EndPaint(m_hwnd, &ps);
+    }
+}
+
+void GraphicsScene::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
+{
+    const float dipX = DPIScale::PixelsToDipsX(pixelX);
+    const float dipY = DPIScale::PixelsToDipsY(pixelY);
+
+    POINT pt = { pixelX, pixelY };
+    ptMouse = { dipX, dipY };
+
+    if (DragDetect(m_hwnd, pt))
+    {
+        SetCapture(m_hwnd);
+        switch (*mode)
+        {
+        case Mode::DrawMode:
+            InsertFigure(dipX, dipY);
+            break;
+        }
+    }
+    else
+    {
+        if (*mode == Mode::SelectMode)
+        {
+            Select(ptMouse);
+        }
+    }
+    InvalidateRect(m_hwnd, NULL, FALSE);
+}
+
+void GraphicsScene::OnLButtonUp()
+{
+    if (Selection())
+    {
+        Selection()->SaveTransform();
+    }
+    ReleaseCapture();
+}
+
+
+void GraphicsScene::OnMouseMove(int pixelX, int pixelY, DWORD flags)
+{
+    const float dipX = DPIScale::PixelsToDipsX(pixelX);
+    const float dipY = DPIScale::PixelsToDipsY(pixelY);
+
+    if ((flags & MK_LBUTTON) && Selection())
+    {
+        switch (*mode)
+        {
+        case Mode::DrawMode:
+        {
+            float left;
+            float right;
+            float top;
+            float bottom;
+
+            if (ptMouse.x > dipX)
+            {
+                left = dipX;
+                right = ptMouse.x;
+            }
+            else
+            {
+                left = ptMouse.x;
+                right = dipX;
+            }
+
+            if (ptMouse.y > dipY)
+            {
+                top = dipY;
+                bottom = ptMouse.y;
+            }
+            else
+            {
+                top = ptMouse.y;
+                bottom = dipY;
+            }
+
+            Selection()->PlaceIn(D2D1::Rect(left, top, right, bottom));
+            break;
+        }
+        case Mode::DragMode:
+        {
+            Selection()->Translate({ dipX - ptMouse.x, dipY - ptMouse.y });
+            ptMouse = { dipX, dipY };
+            break;
+        }
+        {
+        case Mode::ScaleMode:
+            Selection()->RevertTransform();
+            D2D1_POINT_2F center = Selection()->GetCenter();
+            D2D1_SIZE_F size = { abs((dipX - center.x) / (ptMouse.x - center.x)), abs((dipY - center.y) / (ptMouse.y - center.y)) };
+            Selection()->Scale(size, Selection()->GetCenter());
+            break;
+        }
+        case Mode::RotateMode:
+        {
+            D2D1_POINT_2F center = Selection()->GetCenter();
+            FLOAT ax = ptMouse.x - center.x;
+            FLOAT ay = ptMouse.y - center.y;
+            FLOAT bx = dipX - center.x;
+            FLOAT by = dipY - center.y;
+            FLOAT aLengthSquare = ax * ax + ay * ay;
+            FLOAT bLengthSquare = bx * bx + by * by;
+            FLOAT angle = ToDegrees((ax * by - ay * bx) / sqrtf(aLengthSquare * bLengthSquare));
+            Selection()->Rotate(angle, Selection()->GetCenter());
+            ptMouse = { dipX, dipY };
+            break;
+        }
+        }
+        InvalidateRect(m_hwnd, NULL, FALSE);
+    }
+}
+
+void GraphicsScene::OnKeyDown(UINT vkey)
+{
+    switch (vkey)
+    {
+    case VK_DELETE:
+        if ((*mode == Mode::SelectMode) && Selection())
+        {
+            figures.erase(selection);
+            selection = figures.end();
+            ClearSelection();
+            InvalidateRect(m_hwnd, NULL, FALSE);
+        }
+        break;
+    }
+}
+
+LRESULT GraphicsScene::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    switch (uMsg)
+    {
+    case WM_CREATE:
+        if (!GetParent(m_hwnd))
+        {
+            if (FAILED(D2D1CreateFactory(
+                D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory)))
+            {
+                return -1;  // Fail CreateWindowEx.
+            }
+            DPIScale::Initialize();
+        }
+        trackingStruct.hwndTrack = m_hwnd;
+        return 0;
+
+    case WM_DESTROY:
+        if (!GetParent(m_hwnd))
+        {
+            SafeRelease(&pFactory);
+            PostQuitMessage(0);
+        }
+        DiscardGraphicsResources();
+        return 0;
+
+    case WM_PAINT:
+        OnPaint();
+        return 0;
+
+    case WM_SIZE:
+        Resize();
+        return 0;
+
+    case WM_LBUTTONDOWN:
+        OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (DWORD)wParam);
+        return 0;
+
+    case WM_LBUTTONUP:
+        OnLButtonUp();
+        return 0;
+
+    case WM_MOUSEMOVE:
+        if (tracking)
+        {
+            OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (DWORD)wParam);
+        }
+        else
+        {
+            trackingStruct.dwFlags = TME_HOVER | TME_LEAVE;
+            TrackMouseEvent(&trackingStruct);
+            tracking = true;
+        }
+        return 0;
+
+    case WM_MOUSEHOVER:
+        SetFocus(m_hwnd);
+        trackingStruct.dwFlags = TME_LEAVE;
+        TrackMouseEvent(&trackingStruct);
+        return 0;
+
+    case WM_MOUSELEAVE:
+        tracking = false;
+        return 0;
+
+    case WM_KEYDOWN:
+        OnKeyDown((UINT)wParam);
+        return 0;
+
+    case WM_COMMAND:
+        if (~GetKeyState(VK_LBUTTON) & 0x8000)
+        {
+            HWND parentWND = GetParent(m_hwnd);
+            if (!parentWND)
+            {
+                parentWND = m_hwnd;
+            }
+
+            switch (LOWORD(wParam))
+            {
+            case ID_DRAW_MODE:
+                *mode = Mode::DrawMode;
+                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                return 0;
+
+            case ID_SELECT_MODE:
+                *mode = Mode::SelectMode;
+                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                return 0;
+
+            case ID_DRAG_MODE:
+                *mode = Mode::DragMode;
+                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                return 0;
+
+            case ID_SCALE_MODE:
+                *mode = Mode::ScaleMode;
+                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                return 0;
+
+            case ID_ROTATE_MODE:
+                *mode = Mode::RotateMode;
+                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                return 0;
+
+
+            case ID_ELLIPSE:
+                if (*mode == Mode::DrawMode)
+                {
+                    *figure = Figure::Ellipse;
+                    PostMessage(parentWND, WM_FIGURE_CHANGED, NULL, NULL);
+                }
+                return 0;
+
+            case ID_RECT:
+                if (*mode == Mode::DrawMode)
+                {
+                    *figure = Figure::Rect;
+                    PostMessage(parentWND, WM_FIGURE_CHANGED, NULL, NULL);
+                }
+                return 0;
+            }
+        }
+        break;
+
+    case WM_MODE_CHANGED:
+        return 0;
+
+    case WM_FIGURE_CHANGED:
+        return 0;
+
+    case WM_COLOR_CHANGED:
+        ColorChanged();
+        return 0;
+    }
+    return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
+}
