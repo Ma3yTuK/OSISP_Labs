@@ -28,6 +28,7 @@ public:
     D2D1_COLOR_F* GetColor() { return &color; }
     ID2D1Factory* GetFactory() { return pFactory; }
     HWND GetScene() { return graphicsScene->Window(); }
+    HWND GetControl() { return sceneControl->Window(); }
 
     virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 

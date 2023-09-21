@@ -363,27 +363,27 @@ LRESULT GraphicsScene::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
             case ID_DRAW_MODE:
                 *mode = Mode::DrawMode;
-                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                PostMessage(m_hwnd, WM_MODE_CHANGED, NULL, NULL);
                 return 0;
 
             case ID_SELECT_MODE:
                 *mode = Mode::SelectMode;
-                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                PostMessage(m_hwnd, WM_MODE_CHANGED, NULL, NULL);
                 return 0;
 
             case ID_DRAG_MODE:
                 *mode = Mode::DragMode;
-                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                PostMessage(m_hwnd, WM_MODE_CHANGED, NULL, NULL);
                 return 0;
 
             case ID_SCALE_MODE:
                 *mode = Mode::ScaleMode;
-                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                PostMessage(m_hwnd, WM_MODE_CHANGED, NULL, NULL);
                 return 0;
 
             case ID_ROTATE_MODE:
                 *mode = Mode::RotateMode;
-                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                PostMessage(m_hwnd, WM_MODE_CHANGED, NULL, NULL);
                 return 0;
 
 
@@ -391,7 +391,7 @@ LRESULT GraphicsScene::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 if (*mode == Mode::DrawMode)
                 {
                     *figure = Figure::Ellipse;
-                    PostMessage(parentWND, WM_FIGURE_CHANGED, NULL, NULL);
+                    PostMessage(m_hwnd, WM_FIGURE_CHANGED, NULL, NULL);
                 }
                 return 0;
 
@@ -399,7 +399,7 @@ LRESULT GraphicsScene::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 if (*mode == Mode::DrawMode)
                 {
                     *figure = Figure::Rect;
-                    PostMessage(parentWND, WM_FIGURE_CHANGED, NULL, NULL);
+                    PostMessage(m_hwnd, WM_FIGURE_CHANGED, NULL, NULL);
                 }
                 return 0;
             }

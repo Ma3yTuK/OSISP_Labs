@@ -123,13 +123,13 @@ LRESULT SceneControl::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             if ((HWND)lParam == modePicker)
             {
                 *mode = (Mode)ItemIndex;
-                PostMessage(parentWND, WM_MODE_CHANGED, NULL, NULL);
+                PostMessage(m_hwnd, WM_MODE_CHANGED, NULL, NULL);
                 return 0;
             }
             else if ((HWND)lParam == figurePicker)
             {
                 *figure = (Figure)ItemIndex;
-                PostMessage(parentWND, WM_FIGURE_CHANGED, NULL, NULL);
+                PostMessage(m_hwnd, WM_FIGURE_CHANGED, NULL, NULL);
                 return 0;
             }
         }
@@ -142,7 +142,7 @@ LRESULT SceneControl::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
             COLORREF colorRef = buttons[(HWND)lParam];
             *color = D2D1::ColorF(GetRValue(colorRef), GetGValue(colorRef), GetBValue(colorRef));
-            PostMessage(parentWND, WM_COLOR_CHANGED, NULL, NULL);
+            PostMessage(m_hwnd, WM_COLOR_CHANGED, NULL, NULL);
 
             return 0;
         }

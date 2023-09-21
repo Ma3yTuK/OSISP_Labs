@@ -16,6 +16,28 @@ using namespace std;
 #include "SceneControl.h"
 #include "MainWindow.h"
 
+HWND scene_handle;
+WNDPROC scene_proc;
+HWND control_handle;
+WNDPROC control_proc;
+
+LRESULT CALLBACK GetMsgProcCustom(
+    _In_ int    code,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+)
+{
+    UINT Msg = ((MSG*)lParam)->message;
+    if (code >= 0 && (Msg == WM_MODE_CHANGED || Msg == WM_FIGURE_CHANGED || Msg == WM_COLOR_CHANGED))
+    {
+        control_proc(control_handle, Msg, wParam, lParam);
+        scene_proc(scene_handle, Msg, wParam, lParam);
+        return 0;
+    }
+
+    return CallNextHookEx(NULL, code, wParam, lParam);
+}
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 {
     MainWindow win = MainWindow();
@@ -29,6 +51,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
     {
         return 0;
     }
+    
+    SetWindowsHookEx(WH_GETMESSAGE, GetMsgProcCustom, NULL, GetCurrentThreadId());
 
     HACCEL hAccel1 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL1));
     HACCEL hAccel2 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL2));

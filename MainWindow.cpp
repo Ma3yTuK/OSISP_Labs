@@ -6,6 +6,11 @@ const Mode MainWindow::DEFAULT_MODE = Mode::SelectMode;
 const Figure MainWindow::DEFAULT_FIGURE = Figure::Ellipse;
 const D2D1_COLOR_F MainWindow::DEFAULT_COLOR = D2D1::ColorF(D2D1::ColorF::Black);
 
+extern HWND scene_handle;
+extern WNDPROC scene_proc;
+extern HWND control_handle;
+extern WNDPROC control_proc;
+
 MainWindow::MainWindow(Mode mode, Figure figure, D2D1_COLOR_F color, PCWSTR CLASS_NAME) :
     BaseWindow<MainWindow>(CLASS_NAME), mode(mode), figure(figure), color(color), sceneControl(NULL), graphicsScene(NULL)
 {
@@ -64,9 +69,13 @@ void MainWindow::CreateLayout()
 {
     sceneControl = new SceneControl(&mode, &figure, &color);
     sceneControl->Create(L"Scene control", WS_CHILD | WS_BORDER | WS_VISIBLE, m_hwnd);
+    control_handle = sceneControl->Window();
+    control_proc = SceneControl::WindowProc;
 
     graphicsScene = new GraphicsScene(&mode, &figure, &color, pFactory);
     graphicsScene->Create(L"Scene", WS_CHILD | WS_BORDER | WS_VISIBLE, m_hwnd);
+    scene_handle = graphicsScene->Window();
+    scene_proc = GraphicsScene::WindowProc;
 }
 
 void MainWindow::SetLayout()
