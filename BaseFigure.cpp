@@ -25,8 +25,11 @@ void BaseFigure::Rotate(FLOAT angle, PointF center)
 void BaseFigure::Scale(FLOAT size)
 {
     delete lastMatrix;
-    lastMatrix = matrix;
+    lastMatrix = matrix->Clone();
+    PointF* center = GetCenter();
+    matrix->Translate(-center->X, -center->Y, MatrixOrderAppend);
     matrix->Scale(size, size, MatrixOrderAppend);
+    matrix->Translate(center->X, center->Y, MatrixOrderAppend);
 }
 
 void BaseFigure::RevertTransform()
