@@ -17,16 +17,15 @@ private:
     static const PCWSTR DEFAULT_CLASS_NAME;
     static const Mode DEFAULT_MODE;
     static const Figure DEFAULT_FIGURE;
-    static const D2D1_COLOR_F DEFAULT_COLOR;
+    static const Color DEFAULT_COLOR;
 
 public:
-    MainWindow(Mode mode = DEFAULT_MODE, Figure figure = DEFAULT_FIGURE, D2D1_COLOR_F color = DEFAULT_COLOR, PCWSTR CLASS_NAME = DEFAULT_CLASS_NAME);
+    MainWindow(Mode mode = DEFAULT_MODE, Figure figure = DEFAULT_FIGURE, Color color = DEFAULT_COLOR, PCWSTR CLASS_NAME = DEFAULT_CLASS_NAME);
     ~MainWindow();
 
     Mode* GetMode() { return &mode; }
     Figure* GetFigure() { return &figure; }
-    D2D1_COLOR_F* GetColor() { return &color; }
-    ID2D1Factory* GetFactory() { return pFactory; }
+    Color* GetColor() { return &color; }
     HWND GetScene() { return graphicsScene->Window(); }
     HWND GetControl() { return sceneControl->Window(); }
 
@@ -38,8 +37,7 @@ protected:
 
     Mode mode;
     Figure figure;
-    D2D1_COLOR_F color;
-    ID2D1Factory* pFactory;
+    Color color;
 
     SceneControl* sceneControl;
     GraphicsScene* graphicsScene;

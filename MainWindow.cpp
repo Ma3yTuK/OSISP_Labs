@@ -4,14 +4,14 @@
 const PCWSTR MainWindow::DEFAULT_CLASS_NAME = L"Graphics";
 const Mode MainWindow::DEFAULT_MODE = Mode::SelectMode;
 const Figure MainWindow::DEFAULT_FIGURE = Figure::Ellipse;
-const D2D1_COLOR_F MainWindow::DEFAULT_COLOR = D2D1::ColorF(D2D1::ColorF::Black);
+const Color MainWindow::DEFAULT_COLOR = Color(0, 0, 0);
 
 extern HWND scene_handle;
 extern WNDPROC scene_proc;
 extern HWND control_handle;
 extern WNDPROC control_proc;
 
-MainWindow::MainWindow(Mode mode, Figure figure, D2D1_COLOR_F color, PCWSTR CLASS_NAME) :
+MainWindow::MainWindow(Mode mode, Figure figure, Color color, PCWSTR CLASS_NAME) :
     BaseWindow<MainWindow>(CLASS_NAME), mode(mode), figure(figure), color(color), sceneControl(NULL), graphicsScene(NULL)
 {
 }
@@ -29,11 +29,6 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     switch (uMsg)
     {
     case WM_CREATE:
-        if (FAILED(D2D1CreateFactory(
-            D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory)))
-        {
-            return -1;  // Fail CreateWindowEx.
-        }
         DPIScale::Initialize();
         CreateLayout();
         return 0;
@@ -43,7 +38,6 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_DESTROY:
-        SafeRelease(&pFactory);
         PostQuitMessage(0);
         return 0;
 
@@ -72,7 +66,7 @@ void MainWindow::CreateLayout()
     control_handle = sceneControl->Window();
     control_proc = SceneControl::WindowProc;
 
-    graphicsScene = new GraphicsScene(&mode, &figure, &color, pFactory);
+    graphicsScene = new GraphicsScene(&mode, &figure, &color);
     graphicsScene->Create(L"Scene", WS_CHILD | WS_BORDER | WS_VISIBLE, m_hwnd);
     scene_handle = graphicsScene->Window();
     scene_proc = GraphicsScene::WindowProc;

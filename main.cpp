@@ -16,6 +16,11 @@ using namespace std;
 #include "SceneControl.h"
 #include "MainWindow.h"
 
+#include <objidl.h>
+#include <gdiplus.h>
+
+#pragma comment (lib,"Gdiplus.lib")
+
 HWND scene_handle;
 WNDPROC scene_proc;
 HWND control_handle;
@@ -40,6 +45,9 @@ LRESULT CALLBACK GetMsgProcCustom(
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 {
+    Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+    ULONG_PTR gdiplusToken;
+    Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
     MainWindow win = MainWindow();
     //Mode mode = Mode::SelectMode;
     //Figure figure = Figure::Ellipse;

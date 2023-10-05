@@ -31,7 +31,7 @@ const COLORREF SceneControl::BUTTON_COLORS[] = {
     0x00FFFFFF
 };
 
-SceneControl::SceneControl(Mode* mode, Figure* figure, D2D1_COLOR_F* color, PCWSTR CLASS_NAME, float windowHeight, float buttonWidth, float pickerWidth) :
+SceneControl::SceneControl(Mode* mode, Figure* figure, Color* color, PCWSTR CLASS_NAME, float windowHeight, float buttonWidth, float pickerWidth) :
     BaseWindow<SceneControl>(CLASS_NAME), mode(mode), figure(figure), color(color), modePicker(NULL), figurePicker(NULL), windowHeight(windowHeight), buttonWidth(buttonWidth), pickerWidth(pickerWidth), buttons(), brush(NULL), tracking(false), trackingStruct{ sizeof(trackingStruct), NULL, NULL, NULL }
 {
 }
@@ -141,7 +141,7 @@ LRESULT SceneControl::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 parentWND = m_hwnd;
             }
             COLORREF colorRef = buttons[(HWND)lParam];
-            *color = D2D1::ColorF(GetRValue(colorRef), GetGValue(colorRef), GetBValue(colorRef));
+            *color = Color(GetRValue(colorRef), GetGValue(colorRef), GetBValue(colorRef));
             PostMessage(m_hwnd, WM_COLOR_CHANGED, NULL, NULL);
 
             return 0;

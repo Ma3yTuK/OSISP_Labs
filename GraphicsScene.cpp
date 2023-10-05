@@ -2,14 +2,13 @@
 #include "helper_functions.h"
 
 const PCWSTR GraphicsScene::DEFAULT_CLASS_NAME = L"Graphics";
-const D2D1_COLOR_F GraphicsScene::DEFAULT_BORDER_COLOR = D2D1::ColorF(D2D1::ColorF::Black);
-const D2D1_COLOR_F GraphicsScene::DEFAULT_SELECTION_COLOR = D2D1::ColorF(D2D1::ColorF::Red);
+const Color GraphicsScene::DEFAULT_BORDER_COLOR = Color(0, 0, 0);
+const Color GraphicsScene::DEFAULT_SELECTION_COLOR = Color(255, 0, 0);
 const float GraphicsScene::DEFAULT_FIGURE_SIZE = 2.0F;
 
-GraphicsScene::GraphicsScene(Mode* mode, Figure* figure, D2D1_COLOR_F* color,
-    ID2D1Factory* pFactory, PCWSTR CLASS_NAME, D2D1_COLOR_F borderColor, D2D1_COLOR_F selectionColor) :
-    BaseWindow<GraphicsScene>(CLASS_NAME), pFactory(pFactory), mode(mode), figure(figure), color(color),
-    borderColor(borderColor), selectionColor(selectionColor), pRenderTarget(NULL), pBrush(NULL), ptMouse(D2D1::Point2F()), selection(figures.end()),
+GraphicsScene::GraphicsScene(Mode* mode, Figure* figure, Color* color, PCWSTR CLASS_NAME, Color borderColor, Color selectionColor) :
+    BaseWindow<GraphicsScene>(CLASS_NAME), mode(mode), figure(figure), color(color),
+    borderColor(borderColor), selectionColor(selectionColor), ptMouse(), selection(figures.end()),
     tracking(false), trackingStruct{ sizeof(trackingStruct), NULL, NULL, NULL }
 {
 }
@@ -35,49 +34,22 @@ void GraphicsScene::ClearSelection()
     selection = figures.end();
 }
 
-BOOL GraphicsScene::Select(D2D1_POINT_2F hitPoint)
+BOOL GraphicsScene::Select(PointF hitPoint)
 {
     ClearSelection();
     for (auto i = figures.rbegin(); i != figures.rend(); ++i)
     {
         if ((*i)->HitTest(hitPoint))
         {
-            selection = (++i).base();
+            auto tmp = *i;
+            *i = figures.back();
+            figures.back() = tmp;
+            selection = --figures.end();
             Selection()->SetBorderColor(DEFAULT_SELECTION_COLOR);
             return TRUE;
         }
     }
     return FALSE;
-}
-
-HRESULT GraphicsScene::CreateGraphicsResources()
-{
-    HRESULT hr = S_OK;
-    if (pRenderTarget == NULL)
-    {
-        RECT rc;
-        GetClientRect(m_hwnd, &rc);
-
-        D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
-
-        hr = pFactory->CreateHwndRenderTarget(
-            D2D1::RenderTargetProperties(),
-            D2D1::HwndRenderTargetProperties(m_hwnd, size),
-            &pRenderTarget);
-
-        if (SUCCEEDED(hr))
-        {
-            const D2D1_COLOR_F color = D2D1::ColorF(1.0f, 1.0f, 0);
-            hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
-        }
-    }
-    return hr;
-}
-
-void GraphicsScene::DiscardGraphicsResources()
-{
-    SafeRelease(&pRenderTarget);
-    SafeRelease(&pBrush);
 }
 
 void GraphicsScene::InsertFigure(float dipX, float dipY)
@@ -87,17 +59,17 @@ void GraphicsScene::InsertFigure(float dipX, float dipY)
     {
     case Figure::Ellipse:
     {
-        ptMouse = D2D1::Point2F(dipX, dipY);
-        D2D1_ELLIPSE ellipse = D2D1::Ellipse(ptMouse, DEFAULT_FIGURE_SIZE, DEFAULT_FIGURE_SIZE);
+        ptMouse = PointF(dipX, dipY);
+        RectF rect = RectF(dipX, dipY, DEFAULT_FIGURE_SIZE, DEFAULT_FIGURE_SIZE);
         selection = figures.insert(
             figures.end(),
-            std::shared_ptr<BaseFigure>(new EllipseFigure(ellipse, *color, DEFAULT_SELECTION_COLOR)));
+            std::shared_ptr<BaseFigure>(new EllipseFigure(rect, *color, DEFAULT_SELECTION_COLOR)));
         break;
     }
     case Figure::Rect:
     {
-        ptMouse = D2D1::Point2F(dipX, dipY);
-        D2D1_RECT_F rect = D2D1::Rect(ptMouse.x - DEFAULT_FIGURE_SIZE, ptMouse.y - DEFAULT_FIGURE_SIZE, ptMouse.x + DEFAULT_FIGURE_SIZE, ptMouse.y + DEFAULT_FIGURE_SIZE);
+        ptMouse = PointF(dipX, dipY);
+        RectF rect = RectF(dipX, dipY, DEFAULT_FIGURE_SIZE, DEFAULT_FIGURE_SIZE);
         selection = figures.insert(
             figures.end(),
             std::shared_ptr<BaseFigure>(new RectFigure(rect, *color, DEFAULT_SELECTION_COLOR)));
@@ -112,7 +84,7 @@ void GraphicsScene::ColorChanged()
     InvalidateRect(m_hwnd, NULL, FALSE);
 }
 
-void GraphicsScene::Resize()
+/*void GraphicsScene::Resize()
 {
     if (pRenderTarget != NULL)
     {
@@ -125,11 +97,30 @@ void GraphicsScene::Resize()
 
         InvalidateRect(m_hwnd, NULL, FALSE);
     }
-}
+}*/
 
 void GraphicsScene::OnPaint()
 {
-    HRESULT hr = CreateGraphicsResources();
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(m_hwnd, &ps);
+    POINT lpSize = { ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top };
+    POINT pSize = lpSize;
+    LPtoDP(hdc, &pSize, 1);
+    HDC hdcBits = CreateCompatibleDC(hdc);
+    HBITMAP bitMap = CreateCompatibleBitmap(hdc, pSize.x, pSize.y);
+    SelectObject(hdcBits, bitMap);
+    Graphics graphics(hdcBits);
+    graphics.Clear(Color(200, 200, 200));
+    for (auto i = figures.begin(); i != figures.end(); ++i)
+    {
+        (*i)->Draw(&graphics);
+    }
+    BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, lpSize.x, lpSize.y, hdcBits, 0, 0, SRCCOPY);
+    EndPaint(m_hwnd, &ps);
+    DeleteDC(hdc);
+    DeleteDC(hdcBits);
+    DeleteObject(bitMap);
+    /*HRESULT hr = CreateGraphicsResources();
     if (SUCCEEDED(hr))
     {
         PAINTSTRUCT ps;
@@ -150,13 +141,13 @@ void GraphicsScene::OnPaint()
             DiscardGraphicsResources();
         }
         EndPaint(m_hwnd, &ps);
-    }
+    }*/
 }
 
 void GraphicsScene::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 {
-    const float dipX = DPIScale::PixelsToDipsX(pixelX);
-    const float dipY = DPIScale::PixelsToDipsY(pixelY);
+    const float dipX = pixelX;// DPIScale::PixelsToDipsX(pixelX);
+    const float dipY = pixelY;// DPIScale::PixelsToDipsY(pixelY);
 
     POINT pt = { pixelX, pixelY };
     ptMouse = { dipX, dipY };
@@ -193,8 +184,8 @@ void GraphicsScene::OnLButtonUp()
 
 void GraphicsScene::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 {
-    const float dipX = DPIScale::PixelsToDipsX(pixelX);
-    const float dipY = DPIScale::PixelsToDipsY(pixelY);
+    const float dipX = pixelX;//DPIScale::PixelsToDipsX(pixelX);
+    const float dipY = pixelY;//DPIScale::PixelsToDipsY(pixelY);
 
     if ((flags & MK_LBUTTON) && Selection())
     {
@@ -203,61 +194,63 @@ void GraphicsScene::OnMouseMove(int pixelX, int pixelY, DWORD flags)
         case Mode::DrawMode:
         {
             float left;
-            float right;
+            float width;
             float top;
-            float bottom;
+            float height;
 
-            if (ptMouse.x > dipX)
+            if (ptMouse.X > dipX)
             {
                 left = dipX;
-                right = ptMouse.x;
+                width = ptMouse.X - dipX;
             }
             else
             {
-                left = ptMouse.x;
-                right = dipX;
+                left = ptMouse.X;
+                width = dipX - ptMouse.X;
             }
 
-            if (ptMouse.y > dipY)
+            if (ptMouse.Y > dipY)
             {
                 top = dipY;
-                bottom = ptMouse.y;
+                height = ptMouse.Y - dipY;
             }
             else
             {
-                top = ptMouse.y;
-                bottom = dipY;
+                top = ptMouse.Y;
+                height = dipY - ptMouse.Y;
             }
 
-            Selection()->PlaceIn(D2D1::Rect(left, top, right, bottom));
+            Selection()->PlaceIn(RectF(left, top, width, height));
             break;
         }
         case Mode::DragMode:
         {
-            Selection()->Translate({ dipX - ptMouse.x, dipY - ptMouse.y });
+            Selection()->Translate({ dipX - ptMouse.X, dipY - ptMouse.Y });
             ptMouse = { dipX, dipY };
             break;
         }
         {
         case Mode::ScaleMode:
             Selection()->RevertTransform();
-            D2D1_POINT_2F center = Selection()->GetCenter();
-            D2D1_SIZE_F size = { abs((dipX - center.x) / (ptMouse.x - center.x)), abs((dipY - center.y) / (ptMouse.y - center.y)) };
-            Selection()->Scale(size, Selection()->GetCenter());
+            PointF* center = Selection()->GetCenter();
+            PointF size = { abs((dipX - center->X) / (ptMouse.X - center->X)), abs((dipY - center->Y) / (ptMouse.Y - center->Y)) };
+            Selection()->Scale(size.X > size.Y ? size.X : size.Y);
+            delete center;
             break;
         }
         case Mode::RotateMode:
         {
-            D2D1_POINT_2F center = Selection()->GetCenter();
-            FLOAT ax = ptMouse.x - center.x;
-            FLOAT ay = ptMouse.y - center.y;
-            FLOAT bx = dipX - center.x;
-            FLOAT by = dipY - center.y;
+            PointF* center = Selection()->GetCenter();
+            FLOAT ax = ptMouse.X - center->X;
+            FLOAT ay = ptMouse.Y - center->Y;
+            FLOAT bx = dipX - center->X;
+            FLOAT by = dipY - center->Y;
             FLOAT aLengthSquare = ax * ax + ay * ay;
             FLOAT bLengthSquare = bx * bx + by * by;
             FLOAT angle = ToDegrees((ax * by - ay * bx) / sqrtf(aLengthSquare * bLengthSquare));
-            Selection()->Rotate(angle, Selection()->GetCenter());
+            Selection()->Rotate(angle, *center);
             ptMouse = { dipX, dipY };
+            delete center;
             break;
         }
         }
@@ -288,11 +281,6 @@ LRESULT GraphicsScene::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         if (!GetParent(m_hwnd))
         {
-            if (FAILED(D2D1CreateFactory(
-                D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory)))
-            {
-                return -1;  // Fail CreateWindowEx.
-            }
             DPIScale::Initialize();
         }
         trackingStruct.hwndTrack = m_hwnd;
@@ -301,10 +289,8 @@ LRESULT GraphicsScene::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         if (!GetParent(m_hwnd))
         {
-            SafeRelease(&pFactory);
             PostQuitMessage(0);
         }
-        DiscardGraphicsResources();
         return 0;
 
     case WM_PAINT:
@@ -312,7 +298,8 @@ LRESULT GraphicsScene::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_SIZE:
-        Resize();
+        InvalidateRect(m_hwnd, NULL, FALSE);
+        //Resize();
         return 0;
 
     case WM_LBUTTONDOWN:

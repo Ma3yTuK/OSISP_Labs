@@ -1,37 +1,42 @@
 #include "BaseFigure.h"
 
-const D2D1_COLOR_F BaseFigure::DEFAULT_BORDER_COLOR = D2D1::ColorF(D2D1::ColorF::Black);
+const Color BaseFigure::DEFAULT_BORDER_COLOR = Color(0, 0, 0);
 
-BaseFigure::BaseFigure(D2D1_COLOR_F color, D2D1_COLOR_F borderColor, D2D1::Matrix3x2F matrix) :
-    color(color), borderColor(borderColor), matrix(matrix)
+BaseFigure::BaseFigure(Color color, Color borderColor, Matrix* matrix) :
+    color(color), borderColor(borderColor), matrix(matrix), lastMatrix(NULL), pen(new Pen(borderColor, 3.0F))
 {
     SaveTransform();
 }
 
-void BaseFigure::Translate(D2D1_SIZE_F size)
+void BaseFigure::Translate(PointF size)
 {
-    lastMatrix = matrix;
-    matrix = lastMatrix * D2D1::Matrix3x2F::Translation(size);
+    delete lastMatrix;
+    lastMatrix = matrix->Clone();
+    matrix->Translate(size.X, size.Y, MatrixOrderAppend);
 }
 
-void BaseFigure::Rotate(FLOAT angle, D2D1_POINT_2F center)
+void BaseFigure::Rotate(FLOAT angle, PointF center)
 {
-    matrix = lastMatrix = matrix;
-    matrix = lastMatrix * D2D1::Matrix3x2F::Rotation(angle, center);
+    delete lastMatrix;
+    lastMatrix = matrix->Clone();
+    matrix->RotateAt((REAL)angle, center, MatrixOrderAppend);
 }
 
-void BaseFigure::Scale(D2D1_SIZE_F size, D2D1_POINT_2F center)
+void BaseFigure::Scale(FLOAT size)
 {
+    delete lastMatrix;
     lastMatrix = matrix;
-    matrix = lastMatrix * D2D1::Matrix3x2F::Scale(size, center);
+    matrix->Scale(size, size, MatrixOrderAppend);
 }
 
 void BaseFigure::RevertTransform()
 {
-    matrix = lastMatrix;
+    delete matrix;
+    matrix = lastMatrix->Clone();
 }
 
 void BaseFigure::SaveTransform()
 {
-    lastMatrix = matrix;
+    delete lastMatrix;
+    lastMatrix = matrix->Clone();
 }

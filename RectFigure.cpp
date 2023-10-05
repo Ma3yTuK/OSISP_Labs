@@ -1,35 +1,45 @@
 #include "RectFigure.h"
 
-const D2D1_COLOR_F RectFigure::DEFAULT_BORDER_COLOR = D2D1::ColorF(D2D1::ColorF::Black);
+const Color RectFigure::DEFAULT_BORDER_COLOR = Color(0, 0, 0);
 
-RectFigure::RectFigure(D2D1_RECT_F rect, D2D1_COLOR_F color, D2D1_COLOR_F borderColor, D2D1::Matrix3x2F matrix) :
+RectFigure::RectFigure(RectF rect, Color color, Color borderColor, Matrix* matrix) :
     BaseFigure(color, borderColor, matrix), rect(rect)
 {
 }
 
-void RectFigure::Draw(ID2D1RenderTarget* pRT, ID2D1SolidColorBrush* pBrush)
+void RectFigure::Draw(Graphics* graphics)
 {
-    pRT->SetTransform(matrix);
-    pBrush->SetColor(color);
-    pRT->FillRectangle(rect, pBrush);
-    pBrush->SetColor(borderColor);
-    pRT->DrawRectangle(rect, pBrush, 1.0f);
-    pRT->SetTransform(D2D1::Matrix3x2F::Identity());
+    graphics->SetTransform(matrix);
+
+    pen->SetColor(borderColor);
+    graphics->DrawRectangle(pen, rect);
+    pen->SetColor(color);
+    graphics->FillRectangle(pen->GetBrush(), rect);
+
+    graphics->ResetTransform();
 }
 
-void RectFigure::PlaceIn(D2D1_RECT_F rect)
+PointF* RectFigure::GetCenter()
 {
-    matrix = lastMatrix = D2D1::Matrix3x2F::Identity();
+    PointF* result = new PointF((rect.GetRight() + rect.GetLeft()) / 2, (rect.GetTop() + rect.GetBottom()) / 2);
+    matrix->TransformPoints(result);
+    return result;
+}
+
+void RectFigure::PlaceIn(RectF rect)
+{
+    matrix->Reset();
+    lastMatrix->Reset();
     this->rect = rect;
 }
 
-BOOL RectFigure::HitTest(D2D1_POINT_2F hitPoint)
+BOOL RectFigure::HitTest(PointF hitPoint)
 {
-    D2D1::Matrix3x2F invertedMatrix = matrix;
-    invertedMatrix.Invert();
-    hitPoint = invertedMatrix.TransformPoint(hitPoint);
+    Matrix* invertedMatrix = matrix->Clone();
+    invertedMatrix->Invert();
+    invertedMatrix->TransformPoints(&hitPoint);
 
-    if (hitPoint.x > rect.left && hitPoint.x < rect.right && hitPoint.y > rect.top && hitPoint.y < rect.bottom)
+    if (hitPoint.X > rect.GetLeft() && hitPoint.X < rect.GetRight() && hitPoint.Y > rect.GetTop() && hitPoint.Y < rect.GetBottom())
         return true;
     return false;
 }

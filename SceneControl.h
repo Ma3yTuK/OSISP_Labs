@@ -11,6 +11,7 @@
 #include "BaseWindow.h"
 #include "DPIScale.h"
 #include "resource.h"
+#include "BaseFigure.h"
 
 class SceneControl : public BaseWindow<SceneControl>
 {
@@ -26,11 +27,11 @@ private:
     static const COLORREF BUTTON_COLORS[];
 
 public:
-    SceneControl(Mode* mode = NULL, Figure* figure = NULL, D2D1_COLOR_F* color = NULL, PCWSTR CLASS_NAME = DEFAULT_CLASS_NAME, float windowHeight = DEFAULT_WINDOW_HEIGHT, float buttonWidth = DEFAULT_BUTTON_WIDTH, float pickerWidth = DEFAULT_PICKER_WIDTH);
+    SceneControl(Mode* mode = NULL, Figure* figure = NULL, Color* color = NULL, PCWSTR CLASS_NAME = DEFAULT_CLASS_NAME, float windowHeight = DEFAULT_WINDOW_HEIGHT, float buttonWidth = DEFAULT_BUTTON_WIDTH, float pickerWidth = DEFAULT_PICKER_WIDTH);
     ~SceneControl() { DeleteObject(brush); }
 
-    HRESULT CreateGraphicsResources();
-    void DiscardGraphicsResources();
+//    HRESULT CreateGraphicsResources();
+//    void DiscardGraphicsResources();
 
     float GetWindowHeight() { return windowHeight; }
     int GetRealWindowHeight();
@@ -43,7 +44,7 @@ protected:
 
     Mode* mode;
     Figure* figure;
-    D2D1_COLOR_F* color;
+    Color* color;
 
     float windowHeight;
     float buttonWidth;

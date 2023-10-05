@@ -1,41 +1,48 @@
 #include "EllipseFigure.h"
 
-const D2D1_COLOR_F EllipseFigure::DEFAULT_BORDER_COLOR = D2D1::ColorF(D2D1::ColorF::Black);
+const Color EllipseFigure::DEFAULT_BORDER_COLOR = Color(0, 0, 0);
 
-EllipseFigure::EllipseFigure(D2D1_ELLIPSE ellipse, D2D1_COLOR_F color, D2D1_COLOR_F borderColor, D2D1::Matrix3x2F matrix) :
-    BaseFigure(color, borderColor, matrix), ellipse(ellipse)
+EllipseFigure::EllipseFigure(RectF rect, Color color, Color borderColor, Matrix* matrix) :
+    BaseFigure(color, borderColor, matrix), rect(rect)
 {
 }
 
-void EllipseFigure::Draw(ID2D1RenderTarget* pRT, ID2D1SolidColorBrush* pBrush)
+void EllipseFigure::Draw(Graphics* graphics)
 {
-    pRT->SetTransform(matrix);
-    pBrush->SetColor(color);
-    pRT->FillEllipse(ellipse, pBrush);
-    pBrush->SetColor(borderColor);
-    pRT->DrawEllipse(ellipse, pBrush, 1.0f);
-    pRT->SetTransform(D2D1::Matrix3x2F::Identity());
+    graphics->SetTransform(matrix);
+
+    pen->SetColor(borderColor);
+    graphics->DrawEllipse(pen, rect);
+    pen->SetColor(color);
+    graphics->FillEllipse(pen->GetBrush(), rect);
+
+    graphics->ResetTransform();
 }
 
-void EllipseFigure::PlaceIn(D2D1_RECT_F rect)
-{
-    matrix = lastMatrix = D2D1::Matrix3x2F::Identity();
-    D2D1_POINT_2F center = D2D1::Point2F((rect.right + rect.left) / 2, (rect.bottom + rect.top) / 2);
-    FLOAT radiusX = (rect.right - rect.left) / 2;
-    FLOAT radiusY = (rect.bottom - rect.top) / 2;
-    ellipse = D2D1::Ellipse(center, radiusX, radiusY);
+PointF* EllipseFigure::GetCenter() 
+{ 
+    PointF* result = new PointF((rect.GetRight() + rect.GetLeft()) / 2, (rect.GetTop() + rect.GetBottom()) / 2);
+    matrix->TransformPoints(result);
+    return result;
 }
 
-BOOL EllipseFigure::HitTest(D2D1_POINT_2F hitPoint)
+void EllipseFigure::PlaceIn(RectF rect)
 {
-    D2D1::Matrix3x2F invertedMatrix = matrix;
-    invertedMatrix.Invert();
-    hitPoint = invertedMatrix.TransformPoint(hitPoint);
+    matrix->Reset();
+    lastMatrix->Reset();
+    this->rect = rect;
+}
 
-    const float a = ellipse.radiusX;
-    const float b = ellipse.radiusY;
-    const float x1 = hitPoint.x - ellipse.point.x;
-    const float y1 = hitPoint.y - ellipse.point.y;
+BOOL EllipseFigure::HitTest(PointF hitPoint)
+{
+    Matrix* invertedMatrix = matrix->Clone();
+    invertedMatrix->Invert();
+    invertedMatrix->TransformPoints(&hitPoint);
+
+    const float a = rect.Width / 2;
+    const float b = rect.Height / 2;
+    const float x1 = hitPoint.X - (rect.GetLeft() + rect.GetRight()) / 2;
+    const float y1 = hitPoint.Y - (rect.GetTop() + rect.GetBottom()) / 2;
     const float d = ((x1 * x1) / (a * a)) + ((y1 * y1) / (b * b));
     return d <= 1.0f;
 }
