@@ -18,12 +18,12 @@ using namespace std;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 {
-    MainWindow win = MainWindow();
-    //Mode mode = Mode::SelectMode;
-    //Figure figure = Figure::Ellipse;
-    //D2D1_COLOR_F color = D2D1::ColorF(D2D1::ColorF::Black);
+    //MainWindow win = MainWindow();
+    Mode mode = Mode::SelectMode;
+    Figure figure = Figure::Ellipse;
+    D2D1_COLOR_F color = D2D1::ColorF(D2D1::ColorF::Black);
     //SceneControl win = SceneControl(&mode, &figure, &color);
-    //GraphicsScene win = GraphicsScene(&mode, &figure, &color);
+    GraphicsScene win = GraphicsScene(&mode, &figure, &color);
 
     if (!win.Create(L"Draw Circles", WS_OVERLAPPEDWINDOW))
     {
