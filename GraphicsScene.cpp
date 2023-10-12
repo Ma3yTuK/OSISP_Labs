@@ -234,7 +234,7 @@ void GraphicsScene::OnMouseMove(int pixelX, int pixelY, DWORD flags)
             Selection()->RevertTransform();
             PointF* center = Selection()->GetCenter();
             PointF size = { abs((dipX - center->X) / (ptMouse.X - center->X)), abs((dipY - center->Y) / (ptMouse.Y - center->Y)) };
-            Selection()->Scale(size.X > size.Y ? size.X : size.Y);
+            Selection()->Scale(size);
             delete center;
             break;
         }

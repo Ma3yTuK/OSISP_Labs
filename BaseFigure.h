@@ -18,7 +18,7 @@ public:
 
     void Translate(PointF size);
     void Rotate(FLOAT angle, PointF center);
-    void Scale(FLOAT size);
+    void Scale(PointF size);
     void RevertTransform();
     void SaveTransform();
 

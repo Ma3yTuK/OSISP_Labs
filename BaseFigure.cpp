@@ -22,13 +22,13 @@ void BaseFigure::Rotate(FLOAT angle, PointF center)
     matrix->RotateAt((REAL)angle, center, MatrixOrderAppend);
 }
 
-void BaseFigure::Scale(FLOAT size)
+void BaseFigure::Scale(PointF size)
 {
     delete lastMatrix;
     lastMatrix = matrix->Clone();
     PointF* center = GetCenter();
     matrix->Translate(-center->X, -center->Y, MatrixOrderAppend);
-    matrix->Scale(size, size, MatrixOrderAppend);
+    matrix->Scale(size.X, size.Y, MatrixOrderAppend);
     matrix->Translate(center->X, center->Y, MatrixOrderAppend);
 }
 
