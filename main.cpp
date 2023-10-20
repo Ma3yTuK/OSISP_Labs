@@ -18,6 +18,8 @@ using namespace std;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 {
+    DPIScale::Initialize();
+
     MainWindow win = MainWindow();
     //Mode mode = Mode::SelectMode;
     //Figure figure = Figure::Ellipse;
@@ -25,24 +27,25 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
     //SceneControl win = SceneControl(&mode, &figure, &color);
     //GraphicsScene win = GraphicsScene(&mode, &figure, &color);
 
-    if (!win.Create(L"Draw Circles", WS_OVERLAPPEDWINDOW))
+    if (!win.Create(L"Draw Circles", 
+        WS_OVERLAPPEDWINDOW, 
+        NULL, 
+        NULL, 
+        CW_USEDEFAULT, 
+        CW_USEDEFAULT,
+        800,
+        600))
     {
         return 0;
     }
-
-    HACCEL hAccel1 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL1));
-    HACCEL hAccel2 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL2));
     
     ShowWindow(win.Window(), nCmdShow);
 
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
-        if (!TranslateAccelerator(GetFocus(), hAccel1, &msg) && !TranslateAccelerator(GetFocus(), hAccel2, &msg))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
     return 0;
 }
