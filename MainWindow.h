@@ -5,6 +5,8 @@
 #include <d2d1.h>
 #include <ShObjIdl_core.h>
 #include <compressapi.h>
+#include <shlwapi.h>
+#include <string>
 
 #include "settings.h"
 #include "BaseWindow.h"
@@ -40,5 +42,7 @@ protected:
 
     HWND compressButton;
     HWND decompressButton;
+
+    LPCWSTR current_path;
 };
 

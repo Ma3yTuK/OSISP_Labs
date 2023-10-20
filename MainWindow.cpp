@@ -1,7 +1,8 @@
-#include "MainWindow.h"
+﻿#include "MainWindow.h"
 #include "helper_functions.h"
 
 #pragma comment(lib,"cabinet.lib")
+#pragma comment(lib, "Shlwapi.lib")
 
 const PCWSTR MainWindow::DEFAULT_CLASS_NAME = L"Graphics";
 const float MainWindow::MARGIN_X = 6.0F;
@@ -10,6 +11,8 @@ const LPWSTR MainWindow::DEFAULT_EXTENSIONS = L"zip";
 const COMDLG_FILTERSPEC MainWindow::FILE_TYPES[] = {
     { L"Archive (.zip)", L"*.zip" },
 };
+
+std::wstring wstr(L"C:\\Users\\Nazar\\OneDrive\\Рабочий стол\\");
 
 MainWindow::MainWindow(PCWSTR CLASS_NAME) :
     BaseWindow<MainWindow>(CLASS_NAME)
@@ -83,6 +86,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WMSZ_RIGHT:
             dragRc->right = dragRc->left + WINDOW_WIDTH_PIX;
             break;
+
 
         case WMSZ_BOTTOMRIGHT:
             dragRc->right = dragRc->left + WINDOW_WIDTH_PIX;
@@ -220,6 +224,14 @@ bool MainWindow::compress()
                                                     HANDLE alertEvent = CreateEventA(NULL, FALSE, FALSE, NULL);
                                                     if (alertEvent != INVALID_HANDLE_VALUE)
                                                     {
+                                                        /*HANDLE hMapFile;
+                                                        hMapFile = CreateFileMapping(compressedFile, NULL, PAGE_READWRITE, 0, 0, NULL);
+                                                        LPVOID lpMapAddress;
+                                                        lpMapAddress = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+                                                        snprintf((char*)lpMapAddress, compressDataSize, (char*)compressBuffer);
+                                                        UnmapViewOfFile(lpMapAddress);
+                                                        CloseHandle(hMapFile);*/
+                                                        
                                                         OVERLAPPED overlapped = OVERLAPPED();
                                                         overlapped.hEvent = alertEvent;
                                                         BOOL writeResult = WriteFile(compressedFile, compressBuffer, compressDataSize, NULL, &overlapped);
@@ -393,6 +405,7 @@ HANDLE MainWindow::openFile(UINT fileTypesSize, const COMDLG_FILTERSPEC* fileTyp
                         if (SUCCEEDED(hr))
                         {
                             result = CreateFile(filePath, GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
+                            current_path = PathFindFileNameW(filePath);
                         }
                         shellItem->Release();
                     }
@@ -427,20 +440,26 @@ HANDLE MainWindow::saveFile(UINT fileTypesSize, const COMDLG_FILTERSPEC* fileTyp
             }
             if (SUCCEEDED(hr))
             {
-                hr = fileDialog->Show(NULL);
+                //hr = fileDialog->Show(NULL);
                 if (SUCCEEDED(hr))
                 {
-                    IShellItem* shellItem;
-                    hr = fileDialog->GetResult(&shellItem);
+                    //IShellItem* shellItem;
+                    //hr = fileDialog->GetResult(&shellItem);
                     if (SUCCEEDED(hr))
                     {
-                        PWSTR filePath = NULL;
-                        hr = shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath);
+                        //PWSTR filePath = NULL;
+                        //hr = shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath);
                         if (SUCCEEDED(hr))
                         {
-                            result = CreateFile(filePath, GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
+                            std::wstring path = wstr + current_path;
+                            if (fileTypesSize)
+                                path += L".zip";
+                            else
+                                for (int i = 0; i < 4; i++)
+                                    path.pop_back();
+                            result = CreateFile(path.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
                         }
-                        shellItem->Release();
+                        //shellItem->Release();
                     }
                 }
             }
