@@ -8,6 +8,7 @@
 using namespace std;
 
 #pragma comment(lib, "d2d1")
+#pragma comment(lib, "Ntdll")
 
 #include "BaseWindow.h"
 #include "EllipseFigure.h"
@@ -18,6 +19,7 @@ using namespace std;
 
 #include <objidl.h>
 #include <gdiplus.h>
+#include <winternl.h>
 
 #pragma comment (lib,"Gdiplus.lib")
 

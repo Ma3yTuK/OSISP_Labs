@@ -97,8 +97,11 @@
     <ClCompile Include="helper_functions.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="ProcessItem.cpp" />
     <ClCompile Include="RectFigure.cpp" />
     <ClCompile Include="SceneControl.cpp" />
+    <ClCompile Include="ThreadItem.cpp" />
+    <ClCompile Include="ThreadNode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseFigure.h" />
@@ -107,8 +110,10 @@
     <ClInclude Include="DPIScale.h" />
     <ClInclude Include="EllipseFigure.h" />
     <ClInclude Include="GraphicsScene.h" />
+    <ClInclude Include="ThreadNode.h" />
     <ClInclude Include="helper_functions.h" />
     <ClInclude Include="MainWindow.h" />
+    <ClInclude Include="ProcessItem.h" />
     <ClInclude Include="RectFigure.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SceneControl.h" />
