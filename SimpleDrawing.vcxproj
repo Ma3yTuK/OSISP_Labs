@@ -102,6 +102,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseFigure.h" />
+    <ClInclude Include="BaseItem.h" />
     <ClInclude Include="BaseWindow.h" />
     <ClInclude Include="DPIScale.h" />
     <ClInclude Include="EllipseFigure.h" />
@@ -112,6 +113,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="SceneControl.h" />
     <ClInclude Include="settings.h" />
+    <ClInclude Include="ThreadItem.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="input.rc" />

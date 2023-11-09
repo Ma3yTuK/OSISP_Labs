@@ -35,11 +35,16 @@ protected:
     void CreateLayout();
     void SetLayout();
 
-    Mode mode;
-    Figure figure;
-    Color color;
+    float windowHeight;
+    float buttonWidth;
+    float pickerWidth;
 
-    SceneControl* sceneControl;
-    GraphicsScene* graphicsScene;
+    HWND treeView;
+
+    void* items;
+    void* selectedItem;
+
+    bool tracking;
+    TRACKMOUSEEVENT trackingStruct;
 };
 

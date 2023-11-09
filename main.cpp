@@ -45,9 +45,9 @@ LRESULT CALLBACK GetMsgProcCustom(
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 {
-    Gdiplus::GdiplusStartupInput gdiplusStartupInput;
-    ULONG_PTR gdiplusToken;
-    Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+    //Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+    //ULONG_PTR gdiplusToken;
+    //Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
     MainWindow win = MainWindow();
     //Mode mode = Mode::SelectMode;
     //Figure figure = Figure::Ellipse;
@@ -60,21 +60,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
         return 0;
     }
     
-    SetWindowsHookEx(WH_GETMESSAGE, GetMsgProcCustom, NULL, GetCurrentThreadId());
+    //SetWindowsHookEx(WH_GETMESSAGE, GetMsgProcCustom, NULL, GetCurrentThreadId());
 
-    HACCEL hAccel1 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL1));
-    HACCEL hAccel2 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL2));
+    //HACCEL hAccel1 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL1));
+    //HACCEL hAccel2 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL2));
     
     ShowWindow(win.Window(), nCmdShow);
 
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
-        if (!TranslateAccelerator(GetFocus(), hAccel1, &msg) && !TranslateAccelerator(GetFocus(), hAccel2, &msg))
-        {
+        //if (!TranslateAccelerator(GetFocus(), hAccel1, &msg) && !TranslateAccelerator(GetFocus(), hAccel2, &msg))
+        //{
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-        }
+        //}
     }
     return 0;
 }

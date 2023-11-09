@@ -61,15 +61,52 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void MainWindow::CreateLayout()
 {
-    sceneControl = new SceneControl(&mode, &figure, &color);
-    sceneControl->Create(L"Scene control", WS_CHILD | WS_BORDER | WS_VISIBLE, m_hwnd);
-    control_handle = sceneControl->Window();
-    control_proc = SceneControl::WindowProc;
+    modePicker = CreateWindowEx(0,
+        WC_COMBOBOX,
+        NULL,
+        CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
+        0, 0, 0, 0,
+        m_hwnd,
+        NULL,
+        GetModuleHandle(NULL),
+        NULL);
 
-    graphicsScene = new GraphicsScene(&mode, &figure, &color);
-    graphicsScene->Create(L"Scene", WS_CHILD | WS_BORDER | WS_VISIBLE, m_hwnd);
-    scene_handle = graphicsScene->Window();
-    scene_proc = GraphicsScene::WindowProc;
+    figurePicker = CreateWindowEx(0,
+        WC_COMBOBOX,
+        NULL,
+        CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
+        0, 0, 0, 0,
+        m_hwnd,
+        NULL,
+        GetModuleHandle(NULL),
+        NULL);
+
+    for (auto& i : MODE_NAMES)
+    {
+        SendMessage(modePicker, CB_ADDSTRING, 0, (LPARAM)i);
+    }
+    SendMessage(modePicker, CB_SETCURSEL, (WPARAM)*mode, 0);
+
+    for (auto& i : FIGURE_NAMES)
+    {
+        SendMessage(figurePicker, CB_ADDSTRING, 0, (LPARAM)i);
+    }
+    SendMessage(figurePicker, CB_SETCURSEL, (WPARAM)*figure, 0);
+
+    for (auto& i : BUTTON_COLORS)
+    {
+        buttons[CreateWindow(L"BUTTON",
+            NULL,
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_OWNERDRAW | WS_BORDER,
+            0,
+            0,
+            0,
+            0,
+            m_hwnd,
+            NULL,
+            GetModuleHandle(NULL),
+            NULL)] = i;
+    }
 }
 
 void MainWindow::SetLayout()
