@@ -1,6 +1,6 @@
 #include "Initializer.h"
 
-const PCWSTR Initializer::DEFAULT_CLASS_NAME = L"Hard";
+const PCWSTR Initializer::DEFAULT_CLASS_NAME = WC_TREEVIEW;
 
 Initializer::Initializer(PCWSTR CLASS_NAME) : BaseWindow<Initializer>(CLASS_NAME), bufferSize(8192), processes()
 {

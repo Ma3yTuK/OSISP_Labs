@@ -24,6 +24,6 @@ public:
 	virtual ~ProcessItem();
 
 	void remove(const ThreadItem& item);
-	std::vector<ThreadItem>* getThreads() { return &threads; }
+	std::deque<ThreadItem>* getThreads() { return &threads; }
 	bool update(_SYSTEM_PROCESS_INFORMATION* info);
 };

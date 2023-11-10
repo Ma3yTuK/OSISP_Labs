@@ -1,27 +1,34 @@
-#include "MainWindow.h"
-#include "helper_functions.h"
+﻿#include "MainWindow.h"
 
 const PCWSTR MainWindow::DEFAULT_CLASS_NAME = L"Graphics";
-const Mode MainWindow::DEFAULT_MODE = Mode::SelectMode;
-const Figure MainWindow::DEFAULT_FIGURE = Figure::Ellipse;
-const Color MainWindow::DEFAULT_COLOR = Color(0, 0, 0);
+const float MainWindow::MARGIN_X = 6.0F;
+const float MainWindow::MARGIN_Y = 6.0F;
 
-extern HWND scene_handle;
-extern WNDPROC scene_proc;
-extern HWND control_handle;
-extern WNDPROC control_proc;
-
-MainWindow::MainWindow(Mode mode, Figure figure, Color color, PCWSTR CLASS_NAME) :
-    BaseWindow<MainWindow>(CLASS_NAME), mode(mode), figure(figure), color(color), sceneControl(NULL), graphicsScene(NULL)
+MainWindow::MainWindow(PCWSTR CLASS_NAME) :
+    BaseWindow<MainWindow>(CLASS_NAME), initializer(), selected(NULL)
 {
 }
 
 MainWindow::~MainWindow()
 {
-    if (sceneControl)
-        delete sceneControl;
-    if (graphicsScene)
-        delete graphicsScene;
+}
+
+void MainWindow::selectionChanged()
+{
+    if (selected->isSuspended())
+    {
+        SetWindowText(sleepLabel, TEXT("State: suspended"));
+        EnableWindow(suspendButton, FALSE);
+        EnableWindow(resumeButton, TRUE);
+    }
+    else
+    {
+        SetWindowText(sleepLabel, TEXT("State: active"));
+        EnableWindow(suspendButton, TRUE);
+        EnableWindow(resumeButton, FALSE);
+    }
+
+    InvalidateRect(m_hwnd, NULL, FALSE);
 }
 
 LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -29,84 +36,176 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     switch (uMsg)
     {
     case WM_CREATE:
-        DPIScale::Initialize();
         CreateLayout();
         return 0;
+
+    case WM_PAINT:
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(m_hwnd, &ps);
+        FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
+        EndPaint(m_hwnd, &ps);
+        return 0;
+    }
 
     case WM_SIZE:
         SetLayout();
         return 0;
 
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
+    case WM_SIZING:
+    {
+        RECT* dragRc = (RECT*)lParam;
 
-    case WM_MODE_CHANGED:
-        PostMessage(sceneControl->Window(), uMsg, wParam, lParam);
-        PostMessage(graphicsScene->Window(), uMsg, wParam, lParam);
-        return 0;
+        RECT rcWindow;
+        GetWindowRect(m_hwnd, &rcWindow);
 
-    case WM_FIGURE_CHANGED:
-        PostMessage(sceneControl->Window(), uMsg, wParam, lParam);
-        PostMessage(graphicsScene->Window(), uMsg, wParam, lParam);
-        return 0;
+        int WINDOW_HEIGHT_PIX = rcWindow.bottom - rcWindow.top;
+        int WINDOW_WIDTH_PIX = rcWindow.right - rcWindow.left;
 
-    case WM_COLOR_CHANGED:
-        PostMessage(sceneControl->Window(), uMsg, wParam, lParam);
-        PostMessage(graphicsScene->Window(), uMsg, wParam, lParam);
-        return 0;
+        switch (wParam)
+        {
+        case WMSZ_BOTTOM:
+            dragRc->bottom = dragRc->top + WINDOW_HEIGHT_PIX;
+            break;
+
+        case WMSZ_BOTTOMLEFT:
+            dragRc->bottom = dragRc->top + WINDOW_HEIGHT_PIX;
+            dragRc->left = dragRc->right - WINDOW_WIDTH_PIX;
+            break;
+
+        case WMSZ_LEFT:
+            dragRc->left = dragRc->right - WINDOW_WIDTH_PIX;
+            break;
+
+        case WMSZ_TOPLEFT:
+            dragRc->left = dragRc->right - WINDOW_WIDTH_PIX;
+            dragRc->top = dragRc->bottom - WINDOW_HEIGHT_PIX;
+            break;
+
+        case WMSZ_TOP:
+            dragRc->top = dragRc->bottom - WINDOW_HEIGHT_PIX;
+            break;
+
+        case WMSZ_TOPRIGHT:
+            dragRc->top = dragRc->bottom - WINDOW_HEIGHT_PIX;
+            dragRc->right = dragRc->left + WINDOW_WIDTH_PIX;
+            break;
+
+        case WMSZ_RIGHT:
+            dragRc->right = dragRc->left + WINDOW_WIDTH_PIX;
+            break;
+
+
+        case WMSZ_BOTTOMRIGHT:
+            dragRc->right = dragRc->left + WINDOW_WIDTH_PIX;
+            dragRc->bottom = dragRc->top + WINDOW_HEIGHT_PIX;
+            break;
+        }
+
+        return TRUE;
+    }
+
+    case WM_NOTIFY:
+        NMHDR* notification = (NMHDR*)lParam;
+        if (notification->code == TVN_SELCHANGED)
+        {
+            selected = (BaseItem*)((NMTREEVIEWW*)lParam)->itemNew.lParam;
+            selectionChanged();
+            return 0;
+        }
+        break;
+
+    case WM_COMMAND:
+        if (HIWORD(wParam) == BN_CLICKED)
+        {
+            if ((HWND)lParam == suspendButton)
+            {
+                selected->suspend();
+                initializer->initialize();
+            }
+            else if ((HWND)lParam == resumeButton)
+            {
+                selected->resume();
+                initializer->initialize();
+            }
+            else if ((HWND)lParam == terminateButton)
+            {
+                selected->terminate();
+                initializer->initialize();
+            }
+            else
+            {
+                initializer->initialize();
+            }
+            return 0;
+        }
+        break;
     }
     return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 }
 
 void MainWindow::CreateLayout()
 {
-    modePicker = CreateWindowEx(0,
-        WC_COMBOBOX,
+    initializer->Create(L"View",
+        WS_VISIBLE | WS_CHILD | WS_BORDER | TVS_HASLINES,
+        m_hwnd
+        );
+    suspendButton = CreateWindow(L"BUTTON",
+        L"Compress",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
+        0,
+        0,
+        0,
+        0,
+        m_hwnd,
         NULL,
-        CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
-        0, 0, 0, 0,
+        GetModuleHandle(NULL),
+        NULL);
+    resumeButton = CreateWindow(L"BUTTON",
+        L"Decompress",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
+        0,
+        0,
+        0,
+        0,
+        m_hwnd,
+        NULL,
+        GetModuleHandle(NULL),
+        NULL);
+    terminateButton = CreateWindow(L"BUTTON",
+        L"Decompress",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
+        0,
+        0,
+        0,
+        0,
+        m_hwnd,
+        NULL,
+        GetModuleHandle(NULL),
+        NULL);
+    updateButton = CreateWindow(L"BUTTON",
+        L"Decompress",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
+        0,
+        0,
+        0,
+        0,
         m_hwnd,
         NULL,
         GetModuleHandle(NULL),
         NULL);
 
-    figurePicker = CreateWindowEx(0,
-        WC_COMBOBOX,
-        NULL,
-        CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
-        0, 0, 0, 0,
+    sleepLabel = CreateWindow(NULL,
+        L"STATIC",
+        WS_VISIBLE | WS_CHILD | SS_LEFT,
+        0,
+        0,
+        0,
+        0,
         m_hwnd,
         NULL,
         GetModuleHandle(NULL),
         NULL);
-
-    for (auto& i : MODE_NAMES)
-    {
-        SendMessage(modePicker, CB_ADDSTRING, 0, (LPARAM)i);
-    }
-    SendMessage(modePicker, CB_SETCURSEL, (WPARAM)*mode, 0);
-
-    for (auto& i : FIGURE_NAMES)
-    {
-        SendMessage(figurePicker, CB_ADDSTRING, 0, (LPARAM)i);
-    }
-    SendMessage(figurePicker, CB_SETCURSEL, (WPARAM)*figure, 0);
-
-    for (auto& i : BUTTON_COLORS)
-    {
-        buttons[CreateWindow(L"BUTTON",
-            NULL,
-            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_OWNERDRAW | WS_BORDER,
-            0,
-            0,
-            0,
-            0,
-            m_hwnd,
-            NULL,
-            GetModuleHandle(NULL),
-            NULL)] = i;
-    }
 }
 
 void MainWindow::SetLayout()
@@ -114,21 +213,51 @@ void MainWindow::SetLayout()
     RECT rcClient;
     GetClientRect(m_hwnd, &rcClient);
 
-    MoveWindow(sceneControl->Window(),
-        rcClient.left,
-        rcClient.top,
-        rcClient.right,
-        sceneControl->GetRealWindowHeight(),
+    int MARGIN_XPix = DPIScale::DipXToPixels<int>(MARGIN_X);
+    int MARGIN_YPix = DPIScale::DipYToPixels<int>(MARGIN_Y);
+    int WINDOW_HEIGHT_PIX = rcClient.bottom - rcClient.top;
+    int WINDOW_WIDTH_PIX = rcClient.right - rcClient.left;
+
+    MoveWindow(initializer->Window(),
+        MARGIN_XPix,
+        MARGIN_YPix,
+        WINDOW_WIDTH_PIX * 3 / 4 - MARGIN_XPix,
+        WINDOW_HEIGHT_PIX - MARGIN_YPix,
         FALSE);
 
-    RECT rcControl;
-    GetClientRect(sceneControl->Window(), &rcControl);
+    MoveWindow(sleepLabel,
+        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
+        MARGIN_YPix,
+        WINDOW_WIDTH_PIX - MARGIN_XPix,
+        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix,
+        FALSE);
 
-    MoveWindow(graphicsScene->Window(),
-        rcClient.left,
-        rcControl.bottom,
-        rcClient.right,
-        rcClient.bottom - rcControl.bottom,
+    MoveWindow(suspendButton,
+        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * (8 - 1) / 8 + MARGIN_YPix,
+        WINDOW_WIDTH_PIX - MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * (8 - 0) / 8 - MARGIN_YPix,
+        FALSE);
+
+    MoveWindow(resumeButton,
+        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * (8 - 2) / 8 + MARGIN_YPix,
+        WINDOW_WIDTH_PIX - MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * (8 - 1) / 8 - MARGIN_YPix,
+        FALSE);
+
+    MoveWindow(terminateButton,
+        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * (8 - 3) / 8 + MARGIN_YPix,
+        WINDOW_WIDTH_PIX - MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * (8 - 2) / 8 - MARGIN_YPix,
+        FALSE);
+
+    MoveWindow(updateButton,
+        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * (8 - 4) / 8 + MARGIN_YPix,
+        WINDOW_WIDTH_PIX - MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * (8 - 3) / 8 - MARGIN_YPix,
         FALSE);
 
     InvalidateRect(m_hwnd, NULL, FALSE);
