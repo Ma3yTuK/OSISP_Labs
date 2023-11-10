@@ -1,23 +1,28 @@
 #pragma once
 
-#include "BaseFigure.h"
+#include "ThreadItem.h"
 
-class EllipseFigure : public BaseFigure
+#include <vector>
+
+class ProcessItem : public BaseItem
 {
-private:
-    static const Color DEFAULT_BORDER_COLOR;
-
 public:
-    EllipseFigure(RectF Rect, Color color, Color borderColor = DEFAULT_BORDER_COLOR, Matrix* matrix = new Matrix());
+	ProcessItem(_SYSTEM_PROCESS_INFORMATION* processInfo);
+	virtual void suspend() override;
+	virtual void terminate() override;
+	virtual void resume() override;
+	virtual bool isSuspended() override { return suspended; }
+	virtual LPCWSTR getName() override { return name.c_str(); }
+	virtual HANDLE getHandle() override { return process; }
+	virtual ~ProcessItem();
 
-    RectF GetRect() { return rect; }
-
-    virtual void Draw(Graphics* graphics) override;
-    virtual PointF* GetCenter() override;
-    virtual void PlaceIn(RectF rect) override;
-    virtual BOOL HitTest(PointF hitPoint) override;
+	std::vector<ThreadItem>* getThreads() { return &threads; }
+	void update(_SYSTEM_PROCESS_INFORMATION* info);
 
 protected:
-    RectF rect;
-};
+	HANDLE process;
+	std::wstring name;
+	bool suspended;
 
+	std::vector<ThreadItem> threads;
+};

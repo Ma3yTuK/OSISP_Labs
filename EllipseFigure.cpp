@@ -1,48 +1,95 @@
-#include "EllipseFigure.h"
+#include "ProcessItem.h"
 
-const Color EllipseFigure::DEFAULT_BORDER_COLOR = Color(0, 0, 0);
 
-EllipseFigure::EllipseFigure(RectF rect, Color color, Color borderColor, Matrix* matrix) :
-    BaseFigure(color, borderColor, matrix), rect(rect)
+#pragma comment(lib, "Ntdll")
+
+
+ProcessItem::ProcessItem(_SYSTEM_PROCESS_INFORMATION* info) : threads(), suspended(true)
 {
+	process = OpenProcess(PROCESS_ALL_ACCESS, false, (DWORD)info->UniqueProcessId);
+	name = info->ImageName.Buffer;
+
+	_SYSTEM_THREAD_INFORMATION* threadsData = (_SYSTEM_THREAD_INFORMATION*)(info + 1);
+
+	std::qsort(
+		threadsData,
+		info->NumberOfThreads,
+		sizeof(_SYSTEM_THREAD_INFORMATION),
+		[](const void* x, const void* y) {
+			const _SYSTEM_THREAD_INFORMATION* arg1 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(x);
+			const _SYSTEM_THREAD_INFORMATION* arg2 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(y);
+			return (arg1->ClientId.UniqueThread > arg2->ClientId.UniqueThread) - (arg1->ClientId.UniqueThread < arg2->ClientId.UniqueThread);
+		}
+	);
+
+	threads.reserve(info->NumberOfThreads);
+	for (size_t i = 0; i < info->NumberOfThreads; ++i)
+	{
+		if (threadsData->WaitReason != 5)
+			suspended = false;
+		threads.emplace_back(threadsData++);
+	}
 }
 
-void EllipseFigure::Draw(Graphics* graphics)
+ProcessItem::~ProcessItem()
 {
-    graphics->SetTransform(matrix);
-
-    pen->SetColor(borderColor);
-    graphics->DrawEllipse(pen, rect);
-    pen->SetColor(color);
-    graphics->FillEllipse(pen->GetBrush(), rect);
-
-    graphics->ResetTransform();
+	CloseHandle(process);
 }
 
-PointF* EllipseFigure::GetCenter() 
-{ 
-    PointF* result = new PointF((rect.GetRight() + rect.GetLeft()) / 2, (rect.GetTop() + rect.GetBottom()) / 2);
-    matrix->TransformPoints(result);
-    return result;
+void ProcessItem::suspend()
+{
+	for (auto& thread : threads)
+	{
+		thread.suspend();
+	}
+	valid = false;
 }
 
-void EllipseFigure::PlaceIn(RectF rect)
+void ProcessItem::resume()
 {
-    matrix->Reset();
-    lastMatrix->Reset();
-    this->rect = rect;
+	for (auto& thread : threads)
+	{
+		thread.resume();
+	}
+	valid = false;
 }
 
-BOOL EllipseFigure::HitTest(PointF hitPoint)
+void ProcessItem::terminate()
 {
-    Matrix* invertedMatrix = matrix->Clone();
-    invertedMatrix->Invert();
-    invertedMatrix->TransformPoints(&hitPoint);
+	TerminateProcess(process, NULL);
+	valid = false;
+}
 
-    const float a = rect.Width / 2;
-    const float b = rect.Height / 2;
-    const float x1 = hitPoint.X - (rect.GetLeft() + rect.GetRight()) / 2;
-    const float y1 = hitPoint.Y - (rect.GetTop() + rect.GetBottom()) / 2;
-    const float d = ((x1 * x1) / (a * a)) + ((y1 * y1) / (b * b));
-    return d <= 1.0f;
+void ProcessItem::update(_SYSTEM_PROCESS_INFORMATION* info)
+{
+	if (GetProcessId(process) != (DWORD)info->UniqueProcessId)
+	{
+		CloseHandle(process);
+		process = OpenProcess(THREAD_ALL_ACCESS, false, (DWORD)info->UniqueProcessId);
+		name = info->ImageName.Buffer;
+	}
+
+	_SYSTEM_THREAD_INFORMATION* threadsData = (_SYSTEM_THREAD_INFORMATION*)(info + 1);
+
+	std::qsort(
+		threadsData,
+		info->NumberOfThreads,
+		sizeof(_SYSTEM_THREAD_INFORMATION),
+		[](const void* x, const void* y) {
+			const _SYSTEM_THREAD_INFORMATION* arg1 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(x);
+			const _SYSTEM_THREAD_INFORMATION* arg2 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(y);
+			return (arg1->ClientId.UniqueThread > arg2->ClientId.UniqueThread) - (arg1->ClientId.UniqueThread < arg2->ClientId.UniqueThread);
+		}
+	);
+
+	suspended = true;
+	threads.clear();
+	for (size_t i = 0; i < info->NumberOfThreads; ++i)
+	{
+		if (threadsData->WaitReason != 5)
+			suspended = false;
+		threads.emplace_back(threadsData++);
+	}
+
+	valid = true;
 }

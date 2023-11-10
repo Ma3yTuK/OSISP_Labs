@@ -1,11 +1,12 @@
 #pragma once
 
 #include "ProcessItem.h"
+#include "BaseNode.h"
 
 #include <commctrl.h>
 
 
-class ThreadNode
+class ThreadNode : public BaseNode
 {
 	static const size_t COLUMNT_COUNT;
 	static const size_t STR_SIZE;
@@ -14,13 +15,11 @@ class ThreadNode
 	static LPCWSTR NOT_SUSPEND_VAL;
 
 public:
-	ThreadNode(_SYSTEM_THREAD_INFORMATION* info, HWND tree, int index, int group);
-	HANDLE getHandle() { data.getHandle(); }
-	bool update(_SYSTEM_THREAD_INFORMATION* info, int index);
+	ThreadNode(ThreadItem* data, HWND tree, const BaseNode* parent, const BaseNode* after);
+	HANDLE getHandle() { data->getHandle(); }
 	~ThreadNode();
 
 protected:
-	ThreadItem data;
-	std::vector<LVITEMW> nodes;
+	ThreadItem* data;
 	HWND tree;
 };

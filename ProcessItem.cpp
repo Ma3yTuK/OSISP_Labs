@@ -1,8 +1,6 @@
 #include "ProcessItem.h"
 
 
-#pragma comment(lib, "Ntdll")
-
 
 ProcessItem::ProcessItem(_SYSTEM_PROCESS_INFORMATION* info) : threads(), suspended(true)
 {
@@ -18,17 +16,21 @@ ProcessItem::ProcessItem(_SYSTEM_PROCESS_INFORMATION* info) : threads(), suspend
 		[](const void* x, const void* y) {
 			const _SYSTEM_THREAD_INFORMATION* arg1 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(x);
 			const _SYSTEM_THREAD_INFORMATION* arg2 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(y);
-			return (arg1->ClientId.UniqueThread > arg2->ClientId.UniqueThread) - (arg1->ClientId.UniqueThread < arg2->ClientId.UniqueThread);
+			return ((DWORD)arg1->ClientId.UniqueThread > (DWORD)arg2->ClientId.UniqueThread) - ((DWORD)arg1->ClientId.UniqueThread < (DWORD)arg2->ClientId.UniqueThread);
 		}
 	);
 
-	threads.reserve(info->NumberOfThreads);
 	for (size_t i = 0; i < info->NumberOfThreads; ++i)
 	{
 		if (threadsData->WaitReason != 5)
 			suspended = false;
 		threads.emplace_back(threadsData++);
 	}
+}
+
+ProcessItem::ProcessItem(const ProcessItem& obj) : threads(obj.threads)
+{
+	process = OpenProcess(THREAD_ALL_ACCESS, false, GetThreadId(obj.process));
 }
 
 ProcessItem::~ProcessItem()
@@ -60,36 +62,14 @@ void ProcessItem::terminate()
 	valid = false;
 }
 
-void ProcessItem::update(_SYSTEM_PROCESS_INFORMATION* info)
+void ProcessItem::remove(const ThreadItem& item)
 {
-	if (GetProcessId(process) != (DWORD)info->UniqueProcessId)
+	for (auto& i = threads.begin(); i != threads.end(); ++i)
 	{
-		CloseHandle(process);
-		process = OpenProcess(THREAD_ALL_ACCESS, false, (DWORD)info->UniqueProcessId);
-		name = info->ImageName.Buffer;
-	}
-
-	_SYSTEM_THREAD_INFORMATION* threadsData = (_SYSTEM_THREAD_INFORMATION*)(info + 1);
-
-	std::qsort(
-		threadsData,
-		info->NumberOfThreads,
-		sizeof(_SYSTEM_THREAD_INFORMATION),
-		[](const void* x, const void* y) {
-			const _SYSTEM_THREAD_INFORMATION* arg1 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(x);
-			const _SYSTEM_THREAD_INFORMATION* arg2 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(y);
-			return (arg1->ClientId.UniqueThread > arg2->ClientId.UniqueThread) - (arg1->ClientId.UniqueThread < arg2->ClientId.UniqueThread);
+		if (CompareObjectHandles((*i).getHandle(), item.getHandle()))
+		{
+			threads.erase(i);
+			return;
 		}
-	);
-
-	suspended = true;
-	threads.clear();
-	for (size_t i = 0; i < info->NumberOfThreads; ++i)
-	{
-		if (threadsData->WaitReason != 5)
-			suspended = false;
-		threads.emplace_back(threadsData++);
 	}
-
-	valid = true;
 }
