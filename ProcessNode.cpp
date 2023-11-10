@@ -8,15 +8,13 @@ const size_t ProcessNode::STR_SIZE = 20;
 LPCWSTR ProcessNode::SUSPEND_VAL = L"Suspended";
 LPCWSTR ProcessNode::NOT_SUSPEND_VAL = L"Active";
 
-ProcessNode::ProcessNode(_SYSTEM_PROCESS_INFORMATION* info, HWND tree, const BaseNode* parent, const BaseNode* after) : tree(tree)
+ProcessNode::ProcessNode(_SYSTEM_PROCESS_INFORMATION* info, HWND tree, const BaseNode* parent, const BaseNode* prev) : tree(tree), data(ProcessItem(info))
 {
 	node = TVINSERTSTRUCTW();
 
-	data = ProcessItem(info);
-
 	if (parent != NULL)
 		node.hParent = parent->getNode().item.hItem;
-	node.hInsertAfter = after->getNode().item.hItem;
+	node.hInsertAfter = prev->getNode().item.hItem;
 
 	node.item.mask = TVIF_PARAM | TVIF_TEXT;
 	node.item.lParam = (LPARAM)&data;

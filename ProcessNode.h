@@ -16,7 +16,7 @@ class ProcessNode : public BaseNode
 public:
 	ProcessNode(_SYSTEM_PROCESS_INFORMATION* info, HWND tree, const BaseNode* parent, const BaseNode* after);
 	void update(_SYSTEM_PROCESS_INFORMATION* info);
-	HANDLE getHandle() { data.getHandle(); }
+	HANDLE getHandle() { return data.getHandle(); }
 	~ProcessNode();
 
 protected:

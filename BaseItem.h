@@ -14,7 +14,7 @@ public:
 	virtual bool isSuspended() const = 0;
 	virtual LPCWSTR getName() const = 0;
 	virtual HANDLE getHandle() const = 0;
-	virtual ~BaseItem() = 0;
+	virtual ~BaseItem() = default;
 
 	bool isValid() { return valid; }
 	void invalidate() { valid = false; }

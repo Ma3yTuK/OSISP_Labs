@@ -106,6 +106,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
 
     case WM_NOTIFY:
+    {
         NMHDR* notification = (NMHDR*)lParam;
         if (notification->code == TVN_SELCHANGED)
         {
@@ -114,6 +115,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             return 0;
         }
         break;
+    }
 
     case WM_COMMAND:
         if (HIWORD(wParam) == BN_CLICKED)

@@ -23,7 +23,6 @@ public:
 	virtual HANDLE getHandle() const override { return process; }
 	virtual ~ProcessItem();
 
-	void remove(const ThreadItem& item);
 	std::deque<ThreadItem>* getThreads() { return &threads; }
 	bool update(_SYSTEM_PROCESS_INFORMATION* info);
 };

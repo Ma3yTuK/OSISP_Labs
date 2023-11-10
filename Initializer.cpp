@@ -18,12 +18,11 @@ void Initializer::initialize()
 	NtQuerySystemInformation(SystemProcessInformation, buffer, bufferSize, NULL);
 	void* tmp = buffer;
 	size_t offset;
-	BaseNode* after = NULL;
 	do
 	{
 		offset = ((_SYSTEM_PROCESS_INFORMATION*)tmp)->NextEntryOffset;
 		tmpp.push_back((_SYSTEM_PROCESS_INFORMATION*)tmp);
-		tmp = tmp + offset;
+		tmp = (void*)((LONG_PTR)tmp + offset);
 	} while (offset != NULL);
 
 	std::qsort(
@@ -31,9 +30,9 @@ void Initializer::initialize()
 		tmpp.size(),
 		sizeof(ProcessNode),
 		[](const void* x, const void* y) {
-			const _SYSTEM_PROCESS_INFORMATION* arg1 = *static_cast<const _SYSTEM_PROCESS_INFORMATION*>(*x);
-			const _SYSTEM_PROCESS_INFORMATION* arg2 = *static_cast<const _SYSTEM_PROCESS_INFORMATION*>(*y);
-			return (GetProcessId(arg1->UniqueProcessId) > GetProcessId(arg2->UniqueProcessId) - GetProcessId(arg1->UniqueProcessId) < GetProcessId(arg2->UniqueProcessId));
+			const _SYSTEM_PROCESS_INFORMATION** arg1 = (const _SYSTEM_PROCESS_INFORMATION**)(x);
+			const _SYSTEM_PROCESS_INFORMATION** arg2 = (const _SYSTEM_PROCESS_INFORMATION**)(y);
+			return (int)(GetProcessId((*arg1)->UniqueProcessId) > GetProcessId((*arg2)->UniqueProcessId) - (int)(GetProcessId((*arg1)->UniqueProcessId) < GetProcessId((*arg2)->UniqueProcessId)));
 		}
 	);
 
@@ -43,7 +42,7 @@ void Initializer::initialize()
 	{
 		while (i < processes.size() && j < tmpp.size() && GetProcessId((tmpp[j])->UniqueProcessId) < GetProcessId(processes[i].getHandle()))
 		{
-			processes.emplace(processes.begin() + i, tmpp[j], m_hwnd, NULL, after);
+			processes.emplace(processes.begin() + i, tmpp[j], m_hwnd, nullptr, after);
 			after = &processes[i];
 			j++;
 			i++;
@@ -68,7 +67,7 @@ void Initializer::initialize()
 
 	while (j < tmpp.size())
 	{
-		processes.emplace_back(&tmpp[j], m_hwnd, this, after);
+		processes.emplace_back(tmpp[j], m_hwnd, nullptr, after);
 		after = &processes.back();
 		j++;
 	}

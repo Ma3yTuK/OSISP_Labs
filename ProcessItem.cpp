@@ -61,15 +61,3 @@ void ProcessItem::terminate()
 	TerminateProcess(process, NULL);
 	valid = false;
 }
-
-void ProcessItem::remove(const ThreadItem& item)
-{
-	for (auto& i = threads.begin(); i != threads.end(); ++i)
-	{
-		if (CompareObjectHandles((*i).getHandle(), item.getHandle()))
-		{
-			threads.erase(i);
-			return;
-		}
-	}
-}

@@ -6,12 +6,8 @@
 #include <shlwapi.h>
 #include <string>
 
-#include "settings.h"
 #include "BaseWindow.h"
 #include "DPIScale.h"
-#include "resource.h"
-#include "GraphicsScene.h"
-#include "SceneControl.h"
 #include "Initializer.h"
 
 class MainWindow : public BaseWindow<MainWindow>

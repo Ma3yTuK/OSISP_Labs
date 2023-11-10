@@ -7,11 +7,8 @@
 
 #include <unordered_map>
 
-#include "settings.h"
 #include "BaseWindow.h"
 #include "DPIScale.h"
-#include "resource.h"
-#include "BaseFigure.h"
 #include "ProcessNode.h"
 
 class Initializer : public BaseWindow<Initializer>
