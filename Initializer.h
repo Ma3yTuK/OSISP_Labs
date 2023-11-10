@@ -28,7 +28,7 @@ public:
     ~Initializer() { delete[] buffer; }
 
 protected:
-    std::vector<ProcessNode> processes;
+    std::deque<ProcessNode> processes;
     void* buffer;
     size_t bufferSize;
 };

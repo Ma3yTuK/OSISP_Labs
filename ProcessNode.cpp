@@ -46,7 +46,7 @@ void ProcessNode::update(_SYSTEM_PROCESS_INFORMATION* info)
 		[](const void* x, const void* y) {
 			const _SYSTEM_THREAD_INFORMATION* arg1 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(x);
 			const _SYSTEM_THREAD_INFORMATION* arg2 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(y);
-			return ((DWORD)arg1->ClientId.UniqueThread > (DWORD)arg2->ClientId.UniqueThread) - ((DWORD)arg1->ClientId.UniqueThread < (DWORD)arg2->ClientId.UniqueThread);
+			return ((GetThreadId(arg1->ClientId.UniqueThread) > GetThreadId(arg2->ClientId.UniqueThread)) - (GetThreadId(arg1->ClientId.UniqueThread) < GetThreadId(arg2->ClientId.UniqueThread)));
 		}
 	);
 
@@ -55,17 +55,17 @@ void ProcessNode::update(_SYSTEM_PROCESS_INFORMATION* info)
 	size_t i = 0, j = 0;
 	while (i < threads.size() && j < info->NumberOfThreads)
 	{
-		while (i < threads.size() && j < info->NumberOfThreads && (DWORD)(threadsData + j)->ClientId.UniqueThread < GetThreadId(threads[i].getHandle()))
+		while (i < threads.size() && j < info->NumberOfThreads && GetThreadId((threadsData + j)->ClientId.UniqueThread) < GetThreadId(threads[i].getHandle()))
 		{
 			if ((threadsData + j)->WaitReason != 5)
 				data.suspended = false;
 			data.threads.emplace(data.threads.begin() + i, threadsData + j);
-			threads.emplace(threads.begin() + i, &threads[i], tree, this, after);
+			threads.emplace(threads.begin() + i, &data.threads.back(), tree, this, after);
 			after = &threads[i];
 			j++;
 			i++;
 		}
-		while (i < threads.size() && j < info->NumberOfThreads && (DWORD)(threadsData + j)->ClientId.UniqueThread == GetThreadId(threads[i].getHandle()))
+		while (i < threads.size() && j < info->NumberOfThreads && GetThreadId((threadsData + j)->ClientId.UniqueThread) == GetThreadId(threads[i].getHandle()))
 		{
 			if ((threadsData + j)->WaitReason != 5)
 				data.suspended = false;
@@ -74,7 +74,7 @@ void ProcessNode::update(_SYSTEM_PROCESS_INFORMATION* info)
 			j++;
 			i++;
 		}
-		while (i < threads.size() && j < info->NumberOfThreads && (DWORD)(threadsData + j)->ClientId.UniqueThread > GetThreadId(threads[i].getHandle()))
+		while (i < threads.size() && j < info->NumberOfThreads && GetThreadId((threadsData + j)->ClientId.UniqueThread) > GetThreadId(threads[i].getHandle()))
 		{
 			data.threads.erase(data.threads.begin() + i);
 			threads.erase(threads.begin() + i);
@@ -92,7 +92,7 @@ void ProcessNode::update(_SYSTEM_PROCESS_INFORMATION* info)
 		if ((threadsData + j)->WaitReason != 5)
 			data.suspended = false;
 		data.threads.emplace_back(threadsData + j);
-		threads.emplace_back(&threads[i], tree, this, after);
+		threads.emplace_back(&data.threads.back(), tree, this, after);
 		after = &threads.back();
 		j++;
 	}

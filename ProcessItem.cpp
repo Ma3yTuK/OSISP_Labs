@@ -16,7 +16,7 @@ ProcessItem::ProcessItem(_SYSTEM_PROCESS_INFORMATION* info) : threads(), suspend
 		[](const void* x, const void* y) {
 			const _SYSTEM_THREAD_INFORMATION* arg1 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(x);
 			const _SYSTEM_THREAD_INFORMATION* arg2 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(y);
-			return ((DWORD)arg1->ClientId.UniqueThread > (DWORD)arg2->ClientId.UniqueThread) - ((DWORD)arg1->ClientId.UniqueThread < (DWORD)arg2->ClientId.UniqueThread);
+			return ((GetThreadId(arg1->ClientId.UniqueThread) > GetThreadId(arg2->ClientId.UniqueThread)) - (GetThreadId(arg1->ClientId.UniqueThread) < GetThreadId(arg2->ClientId.UniqueThread)));
 		}
 	);
 
