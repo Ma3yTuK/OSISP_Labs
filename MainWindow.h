@@ -2,7 +2,9 @@
 
 #include <windows.h>
 #include <Windowsx.h>
-#include <d2d1.h>
+#include <compressapi.h>
+#include <shlwapi.h>
+#include <string>
 
 #include "settings.h"
 #include "BaseWindow.h"
@@ -15,19 +17,20 @@ class MainWindow : public BaseWindow<MainWindow>
 {
 private:
     static const PCWSTR DEFAULT_CLASS_NAME;
-    static const Mode DEFAULT_MODE;
-    static const Figure DEFAULT_FIGURE;
-    static const Color DEFAULT_COLOR;
+    static const float MARGIN_X;
+    static const float MARGIN_Y;
+    static const LPWSTR DEFAULT_EXTENSIONS;
+    static const COMDLG_FILTERSPEC FILE_TYPES[];
 
 public:
-    MainWindow(Mode mode = DEFAULT_MODE, Figure figure = DEFAULT_FIGURE, Color color = DEFAULT_COLOR, PCWSTR CLASS_NAME = DEFAULT_CLASS_NAME);
+    MainWindow(PCWSTR CLASS_NAME = DEFAULT_CLASS_NAME);
     ~MainWindow();
 
-    Mode* GetMode() { return &mode; }
-    Figure* GetFigure() { return &figure; }
-    Color* GetColor() { return &color; }
-    HWND GetScene() { return graphicsScene->Window(); }
-    HWND GetControl() { return sceneControl->Window(); }
+    bool compress();
+    bool decompress();
+
+    HANDLE openFile(UINT fileTypesSize = 0, const COMDLG_FILTERSPEC* fileTypes = NULL, LPWSTR defaultExtension = NULL);
+    HANDLE saveFile(UINT fileTypesSize = 0, const COMDLG_FILTERSPEC* fileTypes = NULL, LPWSTR defaultExtension = NULL);
 
     virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
@@ -35,16 +38,9 @@ protected:
     void CreateLayout();
     void SetLayout();
 
-    float windowHeight;
-    float buttonWidth;
-    float pickerWidth;
+    HWND compressButton;
+    HWND decompressButton;
 
-    HWND treeView;
-
-    void* items;
-    void* selectedItem;
-
-    bool tracking;
-    TRACKMOUSEEVENT trackingStruct;
+    LPCWSTR current_path;
 };
 
