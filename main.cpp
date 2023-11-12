@@ -10,6 +10,7 @@ using namespace std;
 
 #pragma comment(lib, "d2d1")
 #pragma comment(lib, "Ntdll")
+#pragma comment(lib, "Comctl32")
 
 #include "BaseWindow.h"
 #include "MainWindow.h"
@@ -17,13 +18,7 @@ using namespace std;
 #include <objidl.h>
 #include <gdiplus.h>
 #include <winternl.h>
-
-#pragma comment (lib,"Gdiplus.lib")
-
-HWND scene_handle;
-WNDPROC scene_proc;
-HWND control_handle;
-WNDPROC control_proc;
+#include <CommCtrl.h>
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 {
@@ -48,7 +43,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
     {
         return 0;
     }
-    
     //SetWindowsHookEx(WH_GETMESSAGE, GetMsgProcCustom, NULL, GetCurrentThreadId());
 
     //HACCEL hAccel1 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL1));

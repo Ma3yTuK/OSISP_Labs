@@ -29,13 +29,15 @@ protected:
     void CreateLayout();
     void SetLayout();
 
-    Initializer* initializer;
+    Initializer initializer;
     HWND suspendButton;
     HWND resumeButton;
     HWND terminateButton;
     HWND updateButton;
 
     HWND sleepLabel;
+
+    HWND tree;
 
     BaseItem* selected;
 };

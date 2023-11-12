@@ -8,13 +8,14 @@ const size_t ProcessNode::STR_SIZE = 20;
 LPCWSTR ProcessNode::SUSPEND_VAL = L"Suspended";
 LPCWSTR ProcessNode::NOT_SUSPEND_VAL = L"Active";
 
-ProcessNode::ProcessNode(_SYSTEM_PROCESS_INFORMATION* info, HWND tree, const BaseNode* parent, const BaseNode* prev) : tree(tree), data(ProcessItem(info))
+ProcessNode::ProcessNode(_SYSTEM_PROCESS_INFORMATION* info, HWND tree, const BaseNode* parent, const BaseNode* prev) : tree(tree), data(info)
 {
 	node = TVINSERTSTRUCTW();
 
 	if (parent != NULL)
 		node.hParent = parent->getNode().item.hItem;
-	node.hInsertAfter = prev->getNode().item.hItem;
+	if (prev != NULL)
+		node.hInsertAfter = prev->getNode().item.hItem;
 
 	node.item.mask = TVIF_PARAM | TVIF_TEXT;
 	node.item.lParam = (LPARAM)&data;
@@ -44,7 +45,7 @@ void ProcessNode::update(_SYSTEM_PROCESS_INFORMATION* info)
 		[](const void* x, const void* y) {
 			const _SYSTEM_THREAD_INFORMATION* arg1 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(x);
 			const _SYSTEM_THREAD_INFORMATION* arg2 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(y);
-			return ((GetThreadId(arg1->ClientId.UniqueThread) > GetThreadId(arg2->ClientId.UniqueThread)) - (GetThreadId(arg1->ClientId.UniqueThread) < GetThreadId(arg2->ClientId.UniqueThread)));
+			return (((DWORD)(arg1->ClientId.UniqueThread) > (DWORD)(arg2->ClientId.UniqueThread)) - ((DWORD)(arg1->ClientId.UniqueThread) < (DWORD)(arg2->ClientId.UniqueThread)));
 		}
 	);
 
@@ -53,7 +54,7 @@ void ProcessNode::update(_SYSTEM_PROCESS_INFORMATION* info)
 	size_t i = 0, j = 0;
 	while (i < threads.size() && j < info->NumberOfThreads)
 	{
-		while (i < threads.size() && j < info->NumberOfThreads && GetThreadId((threadsData + j)->ClientId.UniqueThread) < GetThreadId(threads[i].getHandle()))
+		while (i < threads.size() && j < info->NumberOfThreads && (DWORD)((threadsData + j)->ClientId.UniqueThread) < (DWORD)(threads[i].getHandle()))
 		{
 			if ((threadsData + j)->WaitReason != 5)
 				data.suspended = false;
@@ -63,7 +64,7 @@ void ProcessNode::update(_SYSTEM_PROCESS_INFORMATION* info)
 			j++;
 			i++;
 		}
-		while (i < threads.size() && j < info->NumberOfThreads && GetThreadId((threadsData + j)->ClientId.UniqueThread) == GetThreadId(threads[i].getHandle()))
+		while (i < threads.size() && j < info->NumberOfThreads && (DWORD)((threadsData + j)->ClientId.UniqueThread) == (DWORD)(threads[i].getHandle()))
 		{
 			if ((threadsData + j)->WaitReason != 5)
 				data.suspended = false;
@@ -72,17 +73,17 @@ void ProcessNode::update(_SYSTEM_PROCESS_INFORMATION* info)
 			j++;
 			i++;
 		}
-		while (i < threads.size() && j < info->NumberOfThreads && GetThreadId((threadsData + j)->ClientId.UniqueThread) > GetThreadId(threads[i].getHandle()))
+		while (i < threads.size() && j < info->NumberOfThreads && (DWORD)((threadsData + j)->ClientId.UniqueThread) > (DWORD)(threads[i].getHandle()))
 		{
-			data.threads.erase(data.threads.begin() + i);
 			threads.erase(threads.begin() + i);
+			data.threads.erase(data.threads.begin() + i);
 		}
 	}
 
 	while (i < threads.size())
 	{
-		data.threads.erase(data.threads.begin() + i);
 		threads.erase(threads.begin() + i);
+		data.threads.erase(data.threads.begin() + i);
 	}
 
 	while (j < info->NumberOfThreads)
@@ -100,6 +101,6 @@ void ProcessNode::update(_SYSTEM_PROCESS_INFORMATION* info)
 
 ProcessNode::~ProcessNode()
 {
+	TreeView_DeleteItem(tree, node.item.hItem);
 	delete[] node.item.pszText;
-	ListView_DeleteItem(tree, node.item.hItem);
 }

@@ -1,11 +1,20 @@
 #include "ProcessItem.h"
 
 
+LPCWSTR ProcessItem::NAME_PREFIX = L"Process ";
+
+
 
 ProcessItem::ProcessItem(_SYSTEM_PROCESS_INFORMATION* info) : threads(), suspended(true)
 {
-	process = OpenProcess(PROCESS_ALL_ACCESS, false, (DWORD)info->UniqueProcessId);
-	name = info->ImageName.Buffer;
+	process = OpenProcess(PROCESS_ALL_ACCESS, false, (DWORD)(info->UniqueProcessId));
+
+	if (info->ImageName.Buffer)
+		name = info->ImageName.Buffer;
+	else
+		name = NAME_PREFIX + std::to_wstring((DWORD)(info->UniqueProcessId));
+
+	size_t si = sizeof(_SYSTEM_PROCESS_INFORMATION);
 
 	_SYSTEM_THREAD_INFORMATION* threadsData = (_SYSTEM_THREAD_INFORMATION*)(info + 1);
 
@@ -16,7 +25,7 @@ ProcessItem::ProcessItem(_SYSTEM_PROCESS_INFORMATION* info) : threads(), suspend
 		[](const void* x, const void* y) {
 			const _SYSTEM_THREAD_INFORMATION* arg1 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(x);
 			const _SYSTEM_THREAD_INFORMATION* arg2 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(y);
-			return ((GetThreadId(arg1->ClientId.UniqueThread) > GetThreadId(arg2->ClientId.UniqueThread)) - (GetThreadId(arg1->ClientId.UniqueThread) < GetThreadId(arg2->ClientId.UniqueThread)));
+			return (((DWORD)(arg1->ClientId.UniqueThread) > (DWORD)(arg2->ClientId.UniqueThread)) - ((DWORD)(arg1->ClientId.UniqueThread) < (DWORD)(arg2->ClientId.UniqueThread)));
 		}
 	);
 

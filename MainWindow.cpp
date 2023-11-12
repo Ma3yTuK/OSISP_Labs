@@ -48,6 +48,9 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
     }
 
+    case WM_INITDIALOG:
+        InitCommonControls();
+
     case WM_SIZE:
         SetLayout();
         return 0;
@@ -123,22 +126,23 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             if ((HWND)lParam == suspendButton)
             {
                 selected->suspend();
-                initializer->initialize();
+                initializer.initialize(tree);
             }
             else if ((HWND)lParam == resumeButton)
             {
                 selected->resume();
-                initializer->initialize();
+                initializer.initialize(tree);
             }
             else if ((HWND)lParam == terminateButton)
             {
                 selected->terminate();
-                initializer->initialize();
+                initializer.initialize(tree);
             }
             else
             {
-                initializer->initialize();
+                initializer.initialize(tree);
             }
+            InvalidateRect(m_hwnd, NULL, FALSE);
             return 0;
         }
         break;
@@ -148,12 +152,22 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void MainWindow::CreateLayout()
 {
-    initializer->Create(L"View",
+    tree = CreateWindow(WC_TREEVIEW,
+        L"Tree view",
         WS_VISIBLE | WS_CHILD | WS_BORDER | TVS_HASLINES,
-        m_hwnd
-        );
+        0,
+        0,
+        0,
+        0,
+        m_hwnd,
+        NULL,
+        GetModuleHandle(NULL),
+        NULL);
+
+    initializer.initialize(tree);
+
     suspendButton = CreateWindow(L"BUTTON",
-        L"Compress",
+        L"Suspend",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
         0,
         0,
@@ -164,7 +178,7 @@ void MainWindow::CreateLayout()
         GetModuleHandle(NULL),
         NULL);
     resumeButton = CreateWindow(L"BUTTON",
-        L"Decompress",
+        L"Resume",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
         0,
         0,
@@ -175,7 +189,7 @@ void MainWindow::CreateLayout()
         GetModuleHandle(NULL),
         NULL);
     terminateButton = CreateWindow(L"BUTTON",
-        L"Decompress",
+        L"Terminate",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
         0,
         0,
@@ -186,7 +200,7 @@ void MainWindow::CreateLayout()
         GetModuleHandle(NULL),
         NULL);
     updateButton = CreateWindow(L"BUTTON",
-        L"Decompress",
+        L"Update",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
         0,
         0,
@@ -197,8 +211,8 @@ void MainWindow::CreateLayout()
         GetModuleHandle(NULL),
         NULL);
 
-    sleepLabel = CreateWindow(NULL,
-        L"STATIC",
+    sleepLabel = CreateWindow(L"STATIC",
+        NULL,
         WS_VISIBLE | WS_CHILD | SS_LEFT,
         0,
         0,
@@ -220,7 +234,7 @@ void MainWindow::SetLayout()
     int WINDOW_HEIGHT_PIX = rcClient.bottom - rcClient.top;
     int WINDOW_WIDTH_PIX = rcClient.right - rcClient.left;
 
-    MoveWindow(initializer->Window(),
+    MoveWindow(tree,
         MARGIN_XPix,
         MARGIN_YPix,
         WINDOW_WIDTH_PIX * 3 / 4 - MARGIN_XPix,
@@ -230,36 +244,36 @@ void MainWindow::SetLayout()
     MoveWindow(sleepLabel,
         WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
         MARGIN_YPix,
-        WINDOW_WIDTH_PIX - MARGIN_XPix,
-        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix,
+        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
+        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
         FALSE);
 
     MoveWindow(suspendButton,
         WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
         WINDOW_HEIGHT_PIX * (8 - 1) / 8 + MARGIN_YPix,
-        WINDOW_WIDTH_PIX - MARGIN_XPix,
-        WINDOW_HEIGHT_PIX * (8 - 0) / 8 - MARGIN_YPix,
+        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
+        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
         FALSE);
 
     MoveWindow(resumeButton,
         WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
         WINDOW_HEIGHT_PIX * (8 - 2) / 8 + MARGIN_YPix,
-        WINDOW_WIDTH_PIX - MARGIN_XPix,
-        WINDOW_HEIGHT_PIX * (8 - 1) / 8 - MARGIN_YPix,
+        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
+        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
         FALSE);
 
     MoveWindow(terminateButton,
         WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
         WINDOW_HEIGHT_PIX * (8 - 3) / 8 + MARGIN_YPix,
-        WINDOW_WIDTH_PIX - MARGIN_XPix,
-        WINDOW_HEIGHT_PIX * (8 - 2) / 8 - MARGIN_YPix,
+        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
+        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
         FALSE);
 
     MoveWindow(updateButton,
         WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
         WINDOW_HEIGHT_PIX * (8 - 4) / 8 + MARGIN_YPix,
-        WINDOW_WIDTH_PIX - MARGIN_XPix,
-        WINDOW_HEIGHT_PIX * (8 - 3) / 8 - MARGIN_YPix,
+        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
+        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
         FALSE);
 
     InvalidateRect(m_hwnd, NULL, FALSE);

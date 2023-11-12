@@ -7,6 +7,9 @@
 
 class ProcessItem : public BaseItem
 {
+private:
+	static LPCWSTR NAME_PREFIX;
+
 public:
 	bool suspended;
 	HANDLE process;

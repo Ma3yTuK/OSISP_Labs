@@ -11,7 +11,7 @@
 #include "DPIScale.h"
 #include "ProcessNode.h"
 
-class Initializer : public BaseWindow<Initializer>
+class Initializer
 {
 private:
     static const PCWSTR DEFAULT_CLASS_NAME;
@@ -19,12 +19,12 @@ private:
 public:
     Initializer(PCWSTR CLASS_NAME = DEFAULT_CLASS_NAME);
 
-    virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
-    void initialize();
+    void initialize(HWND m_hwnd);
 
     ~Initializer() { delete[] buffer; }
 
 protected:
+    HWND m_hwnd;
     std::deque<ProcessNode> processes;
     void* buffer;
     size_t bufferSize;

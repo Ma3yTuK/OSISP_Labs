@@ -14,7 +14,8 @@ ThreadNode::ThreadNode(ThreadItem* data, HWND tree, const BaseNode* parent, cons
 
 	if (parent != NULL)
 		node.hParent = parent->getNode().item.hItem;
-	node.hInsertAfter = after->getNode().item.hItem;
+	if (after != NULL)
+		node.hInsertAfter = after->getNode().item.hItem;
 
 	node.item.mask = TVIF_PARAM | TVIF_TEXT;
 	node.item.lParam = (LPARAM)data;
@@ -27,6 +28,6 @@ ThreadNode::ThreadNode(ThreadItem* data, HWND tree, const BaseNode* parent, cons
 
 ThreadNode::~ThreadNode() 
 {
+	TreeView_DeleteItem(tree, node.item.hItem);
 	delete[] node.item.pszText;
-	ListView_DeleteItem(tree, node.item.hItem);
 }

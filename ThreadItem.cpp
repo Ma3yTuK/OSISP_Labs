@@ -6,8 +6,8 @@ LPCWSTR ThreadItem::NAME_PREFIX = L"Thread ";
 
 ThreadItem::ThreadItem(_SYSTEM_THREAD_INFORMATION* info)
 {
-	thread = OpenThread(THREAD_ALL_ACCESS, false, (DWORD)info->ClientId.UniqueThread);
-	name = NAME_PREFIX + std::to_wstring((DWORD)info->ClientId.UniqueThread);
+	thread = OpenThread(THREAD_ALL_ACCESS, false, (DWORD)(info->ClientId.UniqueThread));
+	name = NAME_PREFIX + std::to_wstring((DWORD)(info->ClientId.UniqueThread));
 	suspended = info->WaitReason == 5;
 }
 
