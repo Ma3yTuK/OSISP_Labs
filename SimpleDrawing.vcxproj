@@ -95,7 +95,6 @@
     <ClCompile Include="KeyNode.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
-    <ClCompile Include="ProcessItem.cpp" />
     <ClCompile Include="ProcessNode.cpp" />
     <ClCompile Include="ThreadItem.cpp" />
     <ClCompile Include="ThreadNode.cpp" />
