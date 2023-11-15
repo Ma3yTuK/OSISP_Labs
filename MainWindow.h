@@ -8,7 +8,6 @@
 
 #include "BaseWindow.h"
 #include "DPIScale.h"
-#include "Initializer.h"
 
 class MainWindow : public BaseWindow<MainWindow>
 {
