@@ -12,22 +12,21 @@ private:
 
 public:
 	ThreadItem(_SYSTEM_THREAD_INFORMATION* info);
-	ThreadItem(const ThreadItem& obj);
-	virtual void suspend() override;
-	virtual void terminate() override;
-	virtual void resume() override;
+	virtual bool suspend() override;
+	virtual bool terminate() override;
+	virtual bool resume() override;
 	virtual bool isSuspended() const override { return suspended; }
 	virtual LPCWSTR getName() const override { return name.c_str(); }
-	virtual HANDLE getHandle() const override { return thread; }
+	virtual DWORD getId() const override { return thread_id; }
 	virtual ~ThreadItem();
 
 	bool update(_SYSTEM_THREAD_INFORMATION* info);
 
-	bool operator<(const ThreadItem& obj) const { return GetThreadId(thread) < GetThreadId(obj.getHandle()); }
-	bool operator==(const ThreadItem& obj) const { return GetThreadId(thread) < GetThreadId(obj.getHandle()); }
+	bool operator<(const ThreadItem& obj) const { return thread_id < obj.getId(); }
+	bool operator==(const ThreadItem& obj) const { return thread_id == obj.getId(); }
 
 protected:
-	HANDLE thread;
+	size_t thread_id;
 	std::wstring name;
 	bool suspended;
 };

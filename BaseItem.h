@@ -8,12 +8,12 @@ public:
 	BaseItem() : valid(true) {}
 	bool valid;
 
-	virtual void suspend() = 0;
-	virtual void terminate() = 0;
-	virtual void resume() = 0;
+	virtual bool suspend() = 0;
+	virtual bool terminate() = 0;
+	virtual bool resume() = 0;
 	virtual bool isSuspended() const = 0;
 	virtual LPCWSTR getName() const = 0;
-	virtual HANDLE getHandle() const = 0;
+	virtual DWORD getId() const = 0;
 	virtual ~BaseItem() = default;
 
 	bool isValid() { return valid; }

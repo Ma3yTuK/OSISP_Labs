@@ -17,6 +17,7 @@ void Initializer::initialize(HWND m_hwnd)
 	NtQuerySystemInformation(SystemProcessInformation, buffer, bufferSize, &size);
 	size_t si = sizeof(_SYSTEM_PROCESS_INFORMATION);
 	void* tmp = buffer;
+
 	size_t offset;
 	do
 	{
@@ -36,35 +37,37 @@ void Initializer::initialize(HWND m_hwnd)
 	ProcessNode* after = NULL;
 	while (i < processes.size() && j < tmpp.size())
 	{
-		while (i < processes.size() && j < tmpp.size() && (DWORD)((tmpp[j])->UniqueProcessId) < (DWORD)(processes[i].getHandle()))
+		while (i < processes.size() && j < tmpp.size() && (DWORD)((tmpp[j])->UniqueProcessId) < processes[i]->getId())
 		{
-			processes.emplace(processes.begin() + i, tmpp[j], m_hwnd, nullptr, after);
-			after = &processes[i];
+			processes.emplace(processes.begin() + i, new ProcessNode(tmpp[j], m_hwnd, nullptr, after));
+			after = processes[i];
 			j++;
 			i++;
 		}
-		while (i < processes.size() && j < tmpp.size() && (DWORD)((tmpp[j])->UniqueProcessId) == (DWORD)(processes[i].getHandle()))
+		while (i < processes.size() && j < tmpp.size() && (DWORD)((tmpp[j])->UniqueProcessId) == processes[i]->getId())
 		{
-			processes[i].update(tmpp[j]);
-			after = &processes[i];
+			processes[i]->update(tmpp[j]);
+			after = processes[i];
 			j++;
 			i++;
 		}
-		while (i < processes.size() && j < tmpp.size() && (DWORD)((tmpp[j])->UniqueProcessId) > (DWORD)(processes[i].getHandle()))
+		while (i < processes.size() && j < tmpp.size() && (DWORD)((tmpp[j])->UniqueProcessId) > processes[i]->getId())
 		{
+			delete processes[i];
 			processes.erase(processes.begin() + i);
 		}
 	}
 
 	while (i < processes.size())
 	{
+		delete processes[i];
 		processes.erase(processes.begin() + i);
 	}
 
 	while (j < tmpp.size())
 	{
-		processes.emplace_back(tmpp[j], m_hwnd, nullptr, after);
-		after = &processes.back();
+		processes.emplace_back(new ProcessNode(tmpp[j], m_hwnd, nullptr, after));
+		after = processes.back();
 		j++;
 	}
 }

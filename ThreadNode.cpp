@@ -16,6 +16,8 @@ ThreadNode::ThreadNode(ThreadItem* data, HWND tree, const BaseNode* parent, cons
 		node.hParent = parent->getNode().item.hItem;
 	if (after != NULL)
 		node.hInsertAfter = after->getNode().item.hItem;
+	else
+		node.hInsertAfter = TVI_FIRST;
 
 	node.item.mask = TVIF_PARAM | TVIF_TEXT;
 	node.item.lParam = (LPARAM)data;
@@ -23,11 +25,11 @@ ThreadNode::ThreadNode(ThreadItem* data, HWND tree, const BaseNode* parent, cons
 	node.item.cchTextMax = STR_SIZE;
 	StringCchCopy(node.item.pszText, node.item.cchTextMax, data->getName());
 
-	TreeView_InsertItem(tree, &node);
+	node.item.hItem = (HTREEITEM)SendMessage(tree, TVM_INSERTITEM, 0, (LPARAM)&node);
 }
 
 ThreadNode::~ThreadNode() 
 {
 	TreeView_DeleteItem(tree, node.item.hItem);
-	delete[] node.item.pszText;
+	delete[] (WCHAR*)node.item.pszText;
 }

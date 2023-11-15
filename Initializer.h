@@ -25,7 +25,7 @@ public:
 
 protected:
     HWND m_hwnd;
-    std::deque<ProcessNode> processes;
+    std::deque<ProcessNode*> processes;
     void* buffer;
     size_t bufferSize;
 };

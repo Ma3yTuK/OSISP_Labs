@@ -16,7 +16,7 @@ class ThreadNode : public BaseNode
 
 public:
 	ThreadNode(ThreadItem* data, HWND tree, const BaseNode* parent, const BaseNode* after);
-	HANDLE getHandle() { return data->getHandle(); }
+	DWORD getId() { return data->getId(); }
 	~ThreadNode();
 
 protected:

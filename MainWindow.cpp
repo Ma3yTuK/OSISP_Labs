@@ -13,23 +13,40 @@ MainWindow::~MainWindow()
 {
 }
 
-void MainWindow::selectionChanged()
+void MainWindow::update()
 {
-    if (selected->isSuspended())
+    HTREEITEM hSelectedItem = TreeView_GetSelection(tree);
+    TVITEM item = TVITEM();
+    item.hItem = hSelectedItem;
+    item.mask = TVIF_PARAM;
+    TreeView_GetItem(tree, &item);
+    selected = (BaseItem*)item.lParam;
+    if (!selected)
+    {
+        SetWindowText(sleepLabel, NULL);
+        EnableWindow(suspendButton, FALSE);
+        EnableWindow(resumeButton, FALSE);
+        EnableWindow(terminateButton, FALSE);
+    }
+    else if (selected->isSuspended())
     {
         SetWindowText(sleepLabel, TEXT("State: suspended"));
         EnableWindow(suspendButton, FALSE);
         EnableWindow(resumeButton, TRUE);
+        EnableWindow(terminateButton, TRUE);
     }
     else
     {
         SetWindowText(sleepLabel, TEXT("State: active"));
         EnableWindow(suspendButton, TRUE);
         EnableWindow(resumeButton, FALSE);
+        EnableWindow(terminateButton, TRUE);
     }
 
     InvalidateRect(m_hwnd, NULL, FALSE);
 }
+
+//static HBRUSH hBrush = CreateSolidBrush(RGB(230, 2, 2));
 
 LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -113,8 +130,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         NMHDR* notification = (NMHDR*)lParam;
         if (notification->code == TVN_SELCHANGED)
         {
-            selected = (BaseItem*)((NMTREEVIEWW*)lParam)->itemNew.lParam;
-            selectionChanged();
+            update();
             return 0;
         }
         break;
@@ -127,25 +143,43 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 selected->suspend();
                 initializer.initialize(tree);
+                update();
             }
             else if ((HWND)lParam == resumeButton)
             {
                 selected->resume();
                 initializer.initialize(tree);
+                update();
             }
             else if ((HWND)lParam == terminateButton)
             {
                 selected->terminate();
+                    /*MessageBox(
+                        NULL,
+                        NULL,
+                        NULL,
+                        NULL
+                    );*/
                 initializer.initialize(tree);
+                update();
             }
             else
             {
                 initializer.initialize(tree);
+                update();
             }
             InvalidateRect(m_hwnd, NULL, FALSE);
             return 0;
         }
         break;
+
+    /*case WM_CTLCOLORSTATIC:
+    {
+        HDC hdcStatic = (HDC)wParam;
+        SetTextColor(hdcStatic, RGB(0, 0, 0));
+        SetBkColor(hdcStatic, RGB(230, 2, 2));
+        return (INT_PTR)hBrush;
+    }*/
     }
     return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 }
@@ -154,7 +188,7 @@ void MainWindow::CreateLayout()
 {
     tree = CreateWindow(WC_TREEVIEW,
         L"Tree view",
-        WS_VISIBLE | WS_CHILD | WS_BORDER | TVS_HASLINES,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | TVS_HASLINES | TVS_HASBUTTONS | TVS_LINESATROOT | TVS_SHOWSELALWAYS,
         0,
         0,
         0,
@@ -163,8 +197,6 @@ void MainWindow::CreateLayout()
         NULL,
         GetModuleHandle(NULL),
         NULL);
-
-    initializer.initialize(tree);
 
     suspendButton = CreateWindow(L"BUTTON",
         L"Suspend",
@@ -222,6 +254,9 @@ void MainWindow::CreateLayout()
         NULL,
         GetModuleHandle(NULL),
         NULL);
+
+    initializer.initialize(tree);
+    update();
 }
 
 void MainWindow::SetLayout()

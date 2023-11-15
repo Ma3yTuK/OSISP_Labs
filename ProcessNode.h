@@ -16,11 +16,11 @@ class ProcessNode : public BaseNode
 public:
 	ProcessNode(_SYSTEM_PROCESS_INFORMATION* info, HWND tree, const BaseNode* parent, const BaseNode* after);
 	void update(_SYSTEM_PROCESS_INFORMATION* info);
-	HANDLE getHandle() { return data.getHandle(); }
+	DWORD getId() { return data.getId(); }
 	~ProcessNode();
 
 protected:
 	ProcessItem data;
-	std::deque<ThreadNode> threads;
+	std::deque<ThreadNode*> threads;
 	HWND tree;
 };

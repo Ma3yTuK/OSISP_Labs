@@ -21,7 +21,7 @@ public:
     MainWindow(PCWSTR CLASS_NAME = DEFAULT_CLASS_NAME);
     ~MainWindow();
 
-    void selectionChanged();
+    void update();
 
     virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 

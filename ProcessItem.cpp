@@ -7,7 +7,7 @@ LPCWSTR ProcessItem::NAME_PREFIX = L"Process ";
 
 ProcessItem::ProcessItem(_SYSTEM_PROCESS_INFORMATION* info) : threads(), suspended(true)
 {
-	process = OpenProcess(PROCESS_ALL_ACCESS, false, (DWORD)(info->UniqueProcessId));
+	process_id = (DWORD)(info->UniqueProcessId);
 
 	if (info->ImageName.Buffer)
 		name = info->ImageName.Buffer;
@@ -25,7 +25,7 @@ ProcessItem::ProcessItem(_SYSTEM_PROCESS_INFORMATION* info) : threads(), suspend
 		[](const void* x, const void* y) {
 			const _SYSTEM_THREAD_INFORMATION* arg1 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(x);
 			const _SYSTEM_THREAD_INFORMATION* arg2 = static_cast<const _SYSTEM_THREAD_INFORMATION*>(y);
-			return (((DWORD)(arg1->ClientId.UniqueThread) > (DWORD)(arg2->ClientId.UniqueThread)) - ((DWORD)(arg1->ClientId.UniqueThread) < (DWORD)(arg2->ClientId.UniqueThread)));
+			return ((int)((DWORD)(arg1->ClientId.UniqueThread) > (DWORD)(arg2->ClientId.UniqueThread)) - (int)((DWORD)(arg1->ClientId.UniqueThread) < (DWORD)(arg2->ClientId.UniqueThread)));
 		}
 	);
 
@@ -33,40 +33,44 @@ ProcessItem::ProcessItem(_SYSTEM_PROCESS_INFORMATION* info) : threads(), suspend
 	{
 		if (threadsData->WaitReason != 5)
 			suspended = false;
-		threads.emplace_back(threadsData++);
+		threads.emplace_back(new ThreadItem(threadsData++));
 	}
-}
-
-ProcessItem::ProcessItem(const ProcessItem& obj) : threads(obj.threads)
-{
-	process = OpenProcess(THREAD_ALL_ACCESS, false, GetThreadId(obj.process));
 }
 
 ProcessItem::~ProcessItem()
 {
-	CloseHandle(process);
+	for (auto& thread : threads)
+		delete thread;
+	//CloseHandle(process);
 }
 
-void ProcessItem::suspend()
+bool ProcessItem::suspend()
 {
+	valid = false;
 	for (auto& thread : threads)
 	{
-		thread.suspend();
+		if (thread->suspend() < 0)
+			return true;
 	}
-	valid = false;
 }
 
-void ProcessItem::resume()
+bool ProcessItem::resume()
 {
+	valid = false;
 	for (auto & thread : threads)
 	{
-		thread.resume();
+		if (thread->resume() < 0)
+			return true;
 	}
-	valid = false;
 }
 
-void ProcessItem::terminate()
+bool ProcessItem::terminate()
 {
-	TerminateProcess(process, NULL);
 	valid = false;
+	if (HANDLE process = OpenProcess(THREAD_ALL_ACCESS, false, process_id))
+	{
+		DWORD ret = TerminateProcess(process, NULL);
+		CloseHandle(process);
+		return ret == 0;
+	}
 }

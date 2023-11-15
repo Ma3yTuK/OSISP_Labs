@@ -6,37 +6,48 @@ LPCWSTR ThreadItem::NAME_PREFIX = L"Thread ";
 
 ThreadItem::ThreadItem(_SYSTEM_THREAD_INFORMATION* info)
 {
-	thread = OpenThread(THREAD_ALL_ACCESS, false, (DWORD)(info->ClientId.UniqueThread));
-	name = NAME_PREFIX + std::to_wstring((DWORD)(info->ClientId.UniqueThread));
+	thread_id = (DWORD)(info->ClientId.UniqueThread);
+	name = NAME_PREFIX + std::to_wstring(thread_id);
 	suspended = info->WaitReason == 5;
-}
-
-ThreadItem::ThreadItem(const ThreadItem& obj) : name(obj.name), suspended(obj.suspended)
-{
-	thread = OpenThread(THREAD_ALL_ACCESS, false, GetThreadId(obj.thread));
 }
 
 ThreadItem::~ThreadItem()
 {
-	CloseHandle(thread);
+	//CloseHandle(thread);
 }
 
-void ThreadItem::suspend()
+bool ThreadItem::suspend()
 {
-	SuspendThread(thread);
 	valid = false;
+	if (HANDLE thread = OpenThread(THREAD_ALL_ACCESS, false, thread_id))
+	{
+		DWORD ret = SuspendThread(thread);
+		CloseHandle(thread);
+		return ret < 0;
+	}
 }
 
-void ThreadItem::resume()
+bool ThreadItem::resume()
 {
-	while (ResumeThread(thread) > 1);
 	valid = false;
+	if (HANDLE thread = OpenThread(THREAD_ALL_ACCESS, false, thread_id))
+	{
+		DWORD ret;
+		while ((ret = ResumeThread(thread)) > 0);
+		CloseHandle(thread);
+		return ret < 0;
+	}
 }
 
-void ThreadItem::terminate()
+bool ThreadItem::terminate()
 {
-	TerminateThread(thread, NULL);
 	valid = false;
+	if (HANDLE thread = OpenThread(THREAD_ALL_ACCESS, false, thread_id))
+	{
+		DWORD ret = TerminateThread(thread, NULL);
+		CloseHandle(thread);
+		return ret == 0;
+	}
 }
 
 bool ThreadItem::update(_SYSTEM_THREAD_INFORMATION* info)
