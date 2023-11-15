@@ -1,4 +1,6 @@
 ﻿#include "MainWindow.h"
+#include "KeyNode.h"
+#include "ValueNode.h"
 
 const PCWSTR MainWindow::DEFAULT_CLASS_NAME = L"Graphics";
 const float MainWindow::MARGIN_X = 6.0F;
@@ -15,7 +17,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::update()
 {
-    HTREEITEM hSelectedItem = TreeView_GetSelection(tree);
+    /*HTREEITEM hSelectedItem = TreeView_GetSelection(tree);
     TVITEM item = TVITEM();
     item.hItem = hSelectedItem;
     item.mask = TVIF_PARAM;
@@ -41,7 +43,7 @@ void MainWindow::update()
         EnableWindow(suspendButton, TRUE);
         EnableWindow(resumeButton, FALSE);
         EnableWindow(terminateButton, TRUE);
-    }
+    }*/
 
     InvalidateRect(m_hwnd, NULL, FALSE);
 }
@@ -255,7 +257,9 @@ void MainWindow::CreateLayout()
         GetModuleHandle(NULL),
         NULL);
 
-    initializer.initialize(tree);
+    for (auto& i : KeyNode::PREDEFINED_NAMES)
+        new ValueNode(tree, i.first, NULL);
+
     update();
 }
 

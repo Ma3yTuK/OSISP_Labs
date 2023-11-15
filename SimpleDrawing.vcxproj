@@ -92,12 +92,14 @@
   <ItemGroup>
     <ClCompile Include="DPIScale.cpp" />
     <ClCompile Include="Initializer.cpp" />
+    <ClCompile Include="KeyNode.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="ProcessItem.cpp" />
     <ClCompile Include="ProcessNode.cpp" />
     <ClCompile Include="ThreadItem.cpp" />
     <ClCompile Include="ThreadNode.cpp" />
+    <ClCompile Include="ValueNode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseItem.h" />
@@ -105,11 +107,13 @@
     <ClInclude Include="BaseWindow.h" />
     <ClInclude Include="DPIScale.h" />
     <ClInclude Include="Initializer.h" />
+    <ClInclude Include="KeyNode.h" />
     <ClInclude Include="ProcessNode.h" />
     <ClInclude Include="ThreadNode.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="ProcessItem.h" />
     <ClInclude Include="ThreadItem.h" />
+    <ClInclude Include="ValueNode.h" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DeclareDPIAware.manifest" />
