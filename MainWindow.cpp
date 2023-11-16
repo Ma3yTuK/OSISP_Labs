@@ -7,7 +7,7 @@ const float MainWindow::MARGIN_X = 6.0F;
 const float MainWindow::MARGIN_Y = 6.0F;
 
 MainWindow::MainWindow(PCWSTR CLASS_NAME) :
-    BaseWindow<MainWindow>(CLASS_NAME), initializer(), selected(NULL)
+    BaseWindow<MainWindow>(CLASS_NAME)
 {
 }
 
@@ -138,7 +138,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     }
 
-    case WM_COMMAND:
+    /*case WM_COMMAND:
         if (HIWORD(wParam) == BN_CLICKED)
         {
             if ((HWND)lParam == suspendButton)
@@ -161,7 +161,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                         NULL,
                         NULL,
                         NULL
-                    );*/
+                    );
                 initializer.initialize(tree);
                 update();
             }
@@ -258,7 +258,7 @@ void MainWindow::CreateLayout()
         NULL);
 
     for (auto& i : KeyNode::PREDEFINED_NAMES)
-        new ValueNode(tree, i.first, NULL);
+        new KeyNode(tree, i.first.c_str(), NULL);
 
     update();
 }

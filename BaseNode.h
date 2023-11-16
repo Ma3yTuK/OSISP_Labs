@@ -1,7 +1,17 @@
 #pragma once
 
-#include <commctrl.h>
-#include <Windows.h>
+#include <windows.h>
+#include <Windowsx.h>
+#include <d2d1.h>
+#include <Winuser.h>
+
+#include <list>
+#include <memory>
+
+#include <objidl.h>
+#include <gdiplus.h>
+#include <winternl.h>
+#include <CommCtrl.h>
 #include <string>
 
 class BaseNode

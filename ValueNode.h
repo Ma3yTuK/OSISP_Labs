@@ -7,7 +7,7 @@ class KeyNode;
 class ValueNode : public BaseNode
 {
 	static const DWORD DEFAULT_TYPE;
-	static const BYTE DEFAULT_VALUE[];
+	static const BYTE *DEFAULT_VALUE;
 
 public:
 	ValueNode(HWND tree, LPCWSTR name, KeyNode* parent);
@@ -21,5 +21,5 @@ public:
 protected:
 	KeyNode* parent;
 
-	friend KeyNode;
+	friend class KeyNode;
 };

@@ -10,7 +10,7 @@ const std::map<std::wstring, HKEY> KeyNode::PREDEFINED_NAMES = {
 	{ L"HKEY_CURRENT_USER", HKEY_CURRENT_USER },
 	{ L"HKEY_LOCAL_MACHINE", HKEY_LOCAL_MACHINE },
 	{ L"HKEY_USERS", HKEY_USERS }
-}
+};
 
 const size_t KeyNode::MAX_NAME_SIZE = 256;
 
@@ -34,7 +34,7 @@ KeyNode::KeyNode(HWND tree, LPCWSTR name, KeyNode* parent) : BaseNode(tree, name
 
 	node.item.mask = TVIF_PARAM | TVIF_TEXT;
 	node.item.lParam = (LPARAM)this;
-	node.item.pszText = this->name.c_str();
+	node.item.pszText = (LPWSTR)this->name.c_str();
 	node.item.cchTextMax = this->name.size();
 
 	node.item.hItem = (HTREEITEM)SendMessage(tree, TVM_INSERTITEM, 0, (LPARAM)&node);
@@ -46,11 +46,21 @@ KeyNode::KeyNode(HWND tree, LPCWSTR name, KeyNode* parent) : BaseNode(tree, name
 
 	DWORD realSize = MAX_NAME_SIZE;
 
-	for (DWORD i = 0; RegEnumKeyExW(key, i, childName, &realSize, NULL, NULL, NULL, NULL) == ERROR_SUCCESS; ++i) 
+	LSTATUS some;
+
+	for (DWORD i = 0; (some = RegEnumKeyExW(key, i, childName, &realSize, NULL, NULL, NULL, NULL)) == ERROR_SUCCESS; ++i)
+	{
 		new KeyNode(tree, childName, this);
+		realSize = MAX_NAME_SIZE;
+	}
+
+	LSTATUS some1 = some;
 
 	for (DWORD i = 0; RegEnumValueW(key, i, childName, &realSize, NULL, NULL, NULL, NULL) == ERROR_SUCCESS; ++i)
+	{
 		new ValueNode(tree, childName, this);
+		realSize = MAX_NAME_SIZE;
+	}
 
 	delete[] childName;
 
@@ -81,17 +91,18 @@ void KeyNode::remove()
 	}
 }
 
-LSTATUS KeyNode::open(PHKEY key)
+void KeyNode::open(PHKEY key)
 {
 	if (PREDEFINED_NAMES.find(name) != PREDEFINED_NAMES.end())
 	{
-		*key = PREDEFINED_NAMES[name];
+		*key = PREDEFINED_NAMES.at(name);
 	}
 	else
 	{
 		HKEY pKey;
 		parent->open(&pKey);
-		RegCreateKeyExW(pKey, name.c_str(), NULL, NULL, NULL, KEY_ALL_ACCESS, NULL, key, NULL);
+		LSTATUS some = RegCreateKeyExW(pKey, name.c_str(), NULL, NULL, NULL, NULL, NULL, key, NULL);
+		LSTATUS some1 = some;
 		RegCloseKey(pKey);
 	}
 }

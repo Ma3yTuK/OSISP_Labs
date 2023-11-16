@@ -28,7 +28,6 @@ protected:
     void CreateLayout();
     void SetLayout();
 
-    Initializer initializer;
     HWND suspendButton;
     HWND resumeButton;
     HWND terminateButton;
@@ -37,7 +36,5 @@ protected:
     HWND sleepLabel;
 
     HWND tree;
-
-    BaseItem* selected;
 };
 

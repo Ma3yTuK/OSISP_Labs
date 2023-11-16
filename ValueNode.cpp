@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 const DWORD ValueNode::DEFAULT_TYPE = REG_SZ;
-const BYTE ValueNode::DEFAULT_VALUE[] = L"DEFAULT";
+const BYTE *ValueNode::DEFAULT_VALUE = (BYTE*)L"DEFAULT";
 
 ValueNode::ValueNode(HWND tree, LPCWSTR name, KeyNode* parent) : BaseNode(tree, name), parent(parent)
 {
@@ -16,13 +16,12 @@ ValueNode::ValueNode(HWND tree, LPCWSTR name, KeyNode* parent) : BaseNode(tree, 
 		}
 	}
 
-	if (parent != NULL)
-		node.hParent = parent->getNode().item.hItem;
+	node.hParent = parent->getNode().item.hItem;
 	node.hInsertAfter = TVI_SORT;
 
 	node.item.mask = TVIF_PARAM | TVIF_TEXT;
 	node.item.lParam = (LPARAM)this;
-	node.item.pszText = this->name.c_str();
+	node.item.pszText = (LPWSTR)this->name.c_str();
 	node.item.cchTextMax = this->name.size();
 
 	node.item.hItem = (HTREEITEM)SendMessage(tree, TVM_INSERTITEM, 0, (LPARAM)&node);

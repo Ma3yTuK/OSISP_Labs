@@ -2,7 +2,6 @@
 
 #include "BaseNode.h"
 
-#include <Windows.h>
 #include <set>
 #include <map>
 
@@ -20,11 +19,11 @@ public:
 	virtual void remove() override;
 
 protected:
-	LSTATUS open(PHKEY key);
+	void open(PHKEY key);
 
 	KeyNode* parent;
 
 	std::set<BaseNode*> children;
 
-	friend ValueNode;
+	friend class ValueNode;
 };
