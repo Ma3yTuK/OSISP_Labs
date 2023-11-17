@@ -26,16 +26,16 @@ KeyNode::KeyNode(HWND tree, LPCWSTR name, KeyNode* parent) : BaseNode(tree, name
 				throw std::invalid_argument("File with such name already exists");
 			}
 		}
+		parent->children.insert(this);
+		node.hParent = parent->getNode().item.hItem;
 	}
 
-	if (parent != NULL)
-		node.hParent = parent->getNode().item.hItem;
 	node.hInsertAfter = TVI_SORT;
 
 	node.item.mask = TVIF_PARAM | TVIF_TEXT;
 	node.item.lParam = (LPARAM)this;
 	node.item.pszText = (LPWSTR)this->name.c_str();
-	node.item.cchTextMax = this->name.size();
+	node.item.cchTextMax = this->name.size() + 1;
 
 	node.item.hItem = (HTREEITEM)SendMessage(tree, TVM_INSERTITEM, 0, (LPARAM)&node);
 
@@ -44,23 +44,17 @@ KeyNode::KeyNode(HWND tree, LPCWSTR name, KeyNode* parent) : BaseNode(tree, name
 
 	LPWSTR childName = new WCHAR[MAX_NAME_SIZE];
 
-	DWORD realSize = MAX_NAME_SIZE;
+	DWORD realSize;
 
-	LSTATUS some;
+	realSize = MAX_NAME_SIZE;
 
-	for (DWORD i = 0; (some = RegEnumKeyExW(key, i, childName, &realSize, NULL, NULL, NULL, NULL)) == ERROR_SUCCESS; ++i)
-	{
+	if (RegEnumKeyExW(key, NULL, childName, &realSize, NULL, NULL, NULL, NULL) == ERROR_SUCCESS)
 		new KeyNode(tree, childName, this);
-		realSize = MAX_NAME_SIZE;
-	}
 
-	LSTATUS some1 = some;
+	realSize = MAX_NAME_SIZE;
 
-	for (DWORD i = 0; RegEnumValueW(key, i, childName, &realSize, NULL, NULL, NULL, NULL) == ERROR_SUCCESS; ++i)
-	{
+	if (RegEnumValueW(key, NULL, childName, &realSize, NULL, NULL, NULL, NULL) == ERROR_SUCCESS)
 		new ValueNode(tree, childName, this);
-		realSize = MAX_NAME_SIZE;
-	}
 
 	delete[] childName;
 
@@ -74,7 +68,88 @@ KeyNode::~KeyNode()
 
 	if (parent != NULL)
 		parent->children.erase(this);
-	SendMessage(tree, TVM_DELETEITEM, 0, (LPARAM)&node.item.hItem);
+	SendMessage(tree, TVM_DELETEITEM, 0, (LPARAM)node.item.hItem);
+}
+
+void KeyNode::initialize(int depth)
+{
+	if (depth == 0)
+	{
+		if (children.size())
+		{
+			while (children.size() != 1)
+				delete* children.begin();
+		}
+		return;
+	}
+
+	HKEY key;
+	open(&key);
+
+	LPWSTR childName = new WCHAR[MAX_NAME_SIZE];
+
+	DWORD realSize = MAX_NAME_SIZE;
+
+	LSTATUS some, some1;
+	
+	for (auto& ptr : children)
+	{
+		KeyNode* childKey = dynamic_cast<KeyNode*>(ptr);
+		if (childKey != NULL)
+			childKey->initialize(depth - 1);
+	}
+
+	for (DWORD i = 0; (some = RegEnumKeyExW(key, i, childName, &realSize, NULL, NULL, NULL, NULL)) == ERROR_SUCCESS; ++i)
+	{
+		realSize = MAX_NAME_SIZE;
+
+		bool exists = false;
+
+		for (auto& ptr : children)
+		{
+			if (ptr->getName() == childName)
+			{
+				exists = true;
+				break;
+			}
+		}
+
+		if (!exists)
+		{
+			KeyNode* childKey;
+			childKey = new KeyNode(tree, childName, this);
+			childKey->initialize(depth - 1);
+		}
+	}
+
+	some1 = some;
+
+	for (DWORD i = 0; (some = RegEnumValueW(key, i, childName, &realSize, NULL, NULL, NULL, NULL)) == ERROR_SUCCESS; ++i)
+	{
+		realSize = MAX_NAME_SIZE;
+
+		bool exists = false;
+
+		for (auto& ptr : children)
+		{
+			if (ptr->getName() == childName)
+			{
+				exists = true;
+				break;
+			}
+		}
+
+		if (!exists)
+		{
+			new ValueNode(tree, childName, this);
+		}
+	}
+
+	some1 = some;
+
+	delete[] childName;
+
+	RegCloseKey(key);
 }
 
 void KeyNode::remove()
@@ -93,6 +168,8 @@ void KeyNode::remove()
 
 void KeyNode::open(PHKEY key)
 {
+	auto& it1 = PREDEFINED_NAMES.find(name);
+	auto& it2 = PREDEFINED_NAMES.end();
 	if (PREDEFINED_NAMES.find(name) != PREDEFINED_NAMES.end())
 	{
 		*key = PREDEFINED_NAMES.at(name);
@@ -101,7 +178,9 @@ void KeyNode::open(PHKEY key)
 	{
 		HKEY pKey;
 		parent->open(&pKey);
-		LSTATUS some = RegCreateKeyExW(pKey, name.c_str(), NULL, NULL, NULL, NULL, NULL, key, NULL);
+		LSTATUS some;
+		if ((some = RegCreateKeyExW(pKey, name.c_str(), NULL, NULL, NULL, KEY_ALL_ACCESS, NULL, key, NULL)) == ERROR_ACCESS_DENIED)
+			some = RegCreateKeyExW(pKey, name.c_str(), NULL, NULL, NULL, KEY_READ, NULL, key, NULL) == ERROR_ACCESS_DENIED;
 		LSTATUS some1 = some;
 		RegCloseKey(pKey);
 	}

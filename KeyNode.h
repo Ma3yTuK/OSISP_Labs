@@ -16,6 +16,8 @@ public:
 	KeyNode(HWND tree, LPCWSTR name, KeyNode* parent);
 	virtual ~KeyNode() override;
 
+	void initialize(int depth);
+
 	virtual void remove() override;
 
 protected:

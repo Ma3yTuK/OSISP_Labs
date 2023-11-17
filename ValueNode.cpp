@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 const DWORD ValueNode::DEFAULT_TYPE = REG_SZ;
+const LPCWSTR ValueNode::DEFAULT_NAME = L"DEFAULT";
 const BYTE *ValueNode::DEFAULT_VALUE = (BYTE*)L"DEFAULT";
 
 ValueNode::ValueNode(HWND tree, LPCWSTR name, KeyNode* parent) : BaseNode(tree, name), parent(parent)
@@ -15,18 +16,20 @@ ValueNode::ValueNode(HWND tree, LPCWSTR name, KeyNode* parent) : BaseNode(tree, 
 			throw std::invalid_argument("File with such name already exists");
 		}
 	}
+	parent->children.insert(this);
 
 	node.hParent = parent->getNode().item.hItem;
 	node.hInsertAfter = TVI_SORT;
 
 	node.item.mask = TVIF_PARAM | TVIF_TEXT;
 	node.item.lParam = (LPARAM)this;
-	node.item.pszText = (LPWSTR)this->name.c_str();
-	node.item.cchTextMax = this->name.size();
+	if (this->name.size())
+		node.item.pszText = (LPWSTR)this->name.c_str();
+	else
+		node.item.pszText = (LPWSTR)DEFAULT_NAME;
+	node.item.cchTextMax = this->name.size() + 1;
 
 	node.item.hItem = (HTREEITEM)SendMessage(tree, TVM_INSERTITEM, 0, (LPARAM)&node);
-
-	parent->children.insert(this);
 
 	HKEY key;
 	parent->open(&key);
@@ -38,10 +41,10 @@ ValueNode::ValueNode(HWND tree, LPCWSTR name, KeyNode* parent) : BaseNode(tree, 
 ValueNode::~ValueNode()
 {
 	parent->children.erase(this);
-	SendMessage(tree, TVM_DELETEITEM, 0, (LPARAM)&node.item.hItem);
+	SendMessage(tree, TVM_DELETEITEM, 0, (LPARAM)node.item.hItem);
 }
 	
-void ValueNode::set(DWORD type, BYTE* data, DWORD dataSize)
+void ValueNode::set(DWORD type, const BYTE* data, DWORD dataSize)
 {
 	HKEY key;
 	parent->open(&key);
@@ -53,7 +56,8 @@ void ValueNode::get(DWORD* type, BYTE* data, DWORD* dataSize)
 {
 	HKEY key;
 	parent->open(&key);
-	RegGetValueW(key, NULL, this->name.c_str(), NULL, type, data, dataSize);
+	LSTATUS some = RegGetValueW(key, NULL, this->name.c_str(), RRF_RT_ANY, type, data, dataSize);
+	LSTATUS some1 = some;
 	RegCloseKey(key);
 }
 
