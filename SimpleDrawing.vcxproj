@@ -61,7 +61,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
@@ -93,7 +93,6 @@
     <ClCompile Include="DPIScale.cpp" />
     <ClCompile Include="KeyNode.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="ValueNode.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -101,7 +100,6 @@
     <ClInclude Include="BaseWindow.h" />
     <ClInclude Include="DPIScale.h" />
     <ClInclude Include="KeyNode.h" />
-    <ClInclude Include="MainWindow.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="ValueNode.h" />
   </ItemGroup>

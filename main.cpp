@@ -12,52 +12,133 @@ using namespace std;
 #pragma comment(lib, "Ntdll")
 #pragma comment(lib, "Comctl32")
 
-#include "BaseWindow.h"
-#include "MainWindow.h"
-
 #include <objidl.h>
 #include <gdiplus.h>
 #include <winternl.h>
 #include <CommCtrl.h>
+#include <ctime>
+#include <cstdlib>
+#include <string>
+#include <iostream>
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
+HANDLE forksSemathore;
+
+enum State
 {
-    //Gdiplus::GdiplusStartupInput gdiplusStartupInput;
-    //ULONG_PTR gdiplusToken;
-    //Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-    MainWindow win = MainWindow();
-    //Mode mode = Mode::SelectMode;
-    //Figure figure = Figure::Ellipse;
-    //D2D1_COLOR_F color = D2D1::ColorF(D2D1::ColorF::Black);
-    //SceneControl win = SceneControl(&mode, &figure, &color);
-    //GraphicsScene win = GraphicsScene(&mode, &figure, &color);
+    eating,
+    waiting,
+    thinking
+};
 
-    if (!win.Create(L"Draw Circles",
-        WS_OVERLAPPEDWINDOW,
-        NULL,
-        NULL,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        800,
-        600))
+struct philosopher
+{
+    bool leftForkOwner;
+    HANDLE leftForkMutex;
+    State state;
+    clock_t inactiveWaitingStart;
+};
+
+const long long MAX_THINKING_TIME = 1000000;
+const long long MAX_EATING_TIME = 1000000;
+LPCWSTR timer_name = L"ttimer";
+LPCWSTR semathore_name = L"semathore";
+
+size_t PHILOSOPHERS_COUNT = 5;
+philosopher* PHILOSOPHERS = new philosopher[PHILOSOPHERS_COUNT]();
+
+DWORD WINAPI MyThreadFunction(LPVOID lpParam)
+{
+    size_t id = (size_t)lpParam;
+    DWORD thread_id = GetCurrentThreadId();
+    philosopher& phil = PHILOSOPHERS[id];
+    philosopher& nextPhil = PHILOSOPHERS[(id + 1) % PHILOSOPHERS_COUNT];
+
+    HANDLE timer = CreateWaitableTimerW(NULL, FALSE, (std::to_wstring(id) + timer_name).c_str());
+
+    while (true)
     {
-        return 0;
+       phil.state = thinking;
+
+       LARGE_INTEGER liDueTime;
+       liDueTime.QuadPart = -(long long)(rand()*777 % MAX_THINKING_TIME);
+       SetWaitableTimer(timer, &liDueTime, NULL, NULL, NULL, FALSE);
+       WaitForSingleObject(timer, INFINITE);
+
+       phil.state = waiting;
+       
+       phil.inactiveWaitingStart = clock();
+
+       CONST HANDLE handles[] = { forksSemathore, phil.leftForkMutex };
+
+       WaitForMultipleObjects(2, handles, TRUE, INFINITE);
+       phil.leftForkOwner = TRUE;
+       WaitForSingleObject(nextPhil.leftForkMutex, INFINITE);
+       nextPhil.leftForkOwner = FALSE;
+
+       phil.state = eating;
+
+       liDueTime.QuadPart = -(long long)(rand()*777 % MAX_EATING_TIME);
+       SetWaitableTimer(timer, &liDueTime, NULL, NULL, NULL, FALSE);
+       WaitForSingleObject(timer, INFINITE);
+
+       phil.state = thinking;
+
+       ReleaseMutex(phil.leftForkMutex);
+       ReleaseMutex(nextPhil.leftForkMutex);
+       ReleaseSemaphore(forksSemathore, 1, NULL);
+
+       phil.leftForkOwner = FALSE;
     }
-    //SetWindowsHookEx(WH_GETMESSAGE, GetMsgProcCustom, NULL, GetCurrentThreadId());
 
-    //HACCEL hAccel1 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL1));
-    //HACCEL hAccel2 = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCEL2));
-    
-    ShowWindow(win.Window(), nCmdShow);
+    CloseHandle(timer);
 
-    MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0))
+    return 0;
+}
+
+void CALLBACK EverySecond(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue)
+{
+    for (size_t i = 0; i < PHILOSOPHERS_COUNT; i++)
     {
-        //if (!TranslateAccelerator(GetFocus(), hAccel1, &msg) && !TranslateAccelerator(GetFocus(), hAccel2, &msg))
-        //{
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        //}
+        philosopher& phil = PHILOSOPHERS[i];
+
+        if (phil.state == waiting)
+            std::cout << "(" << clock() - phil.inactiveWaitingStart << ")";
+        else if (phil.state == thinking)
+            std::cout << "(thinking)";
+        else
+            std::cout << "(eating)";
+        std::cout << std::endl;
     }
+    std::cout << std::endl << std::endl;
+}
+
+int main(int argc, char** argv)
+{
+    srand(time(NULL));
+
+    forksSemathore = CreateSemaphore(NULL, PHILOSOPHERS_COUNT - 1, PHILOSOPHERS_COUNT - 1, semathore_name);
+
+    for (size_t i = 0; i < PHILOSOPHERS_COUNT; i++)
+    {
+        PHILOSOPHERS[i].state = thinking;
+        PHILOSOPHERS[i].leftForkMutex = CreateMutexW(NULL, NULL, std::to_wstring(i).c_str());
+    }
+
+    for (size_t i = 0; i < PHILOSOPHERS_COUNT; i++)
+    {
+        CreateThread(NULL, NULL, &MyThreadFunction, (LPVOID)i, NULL, NULL);
+    }
+
+    HANDLE timer = CreateWaitableTimerW(NULL, FALSE, timer_name);
+
+    LARGE_INTEGER liDueTime;
+    liDueTime.QuadPart = -1000LL;
+    SetWaitableTimer(timer, &liDueTime, 1000, &EverySecond, NULL, FALSE);
+
+    while (true)
+    {
+        SleepEx(INFINITE, TRUE);
+    }
+
     return 0;
 }
