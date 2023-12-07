@@ -18,8 +18,51 @@ std::set<SOCKET> clients;
 
 const size_t BUFF_SIZE = 16384;
 
+HANDLE ghMutex;
+
+DWORD WINAPI ClientThread(LPVOID lpParameter)
+{
+	SOCKET* clientSocket = (SOCKET*)lpParameter;
+
+	wchar_t* buff = new wchar_t[BUFF_SIZE];
+
+	int recvStatus = 0;
+
+	do {
+		recvStatus = recv(*clientSocket, (char*)buff, BUFF_SIZE * sizeof(*buff), 0);
+
+		WaitForSingleObject(ghMutex, INFINITE);
+
+		auto it = clients.begin();
+		while (it != clients.end())
+		{
+			if (send(*it, (char*)buff, recvStatus, 0) == SOCKET_ERROR)
+			{
+				closesocket(*it);
+				it = clients.erase(it);
+			}
+			else
+			{
+				it++;
+			}
+		}
+
+		ReleaseMutex(ghMutex);
+
+	} while (recvStatus > 0);
+
+	closesocket(*clientSocket);
+
+	delete clientSocket;
+	delete[] buff;
+
+	return 0;
+}
+
 int main() {
 	wchar_t* buff = new wchar_t[BUFF_SIZE];
+
+	ghMutex = CreateMutex(NULL, FALSE, NULL);
 
 	WSADATA wsaData;
 
@@ -37,47 +80,16 @@ int main() {
 				{
 					while (listen(listenSocket, SOMAXCONN) != SOCKET_ERROR)
 					{
-						SOCKET clientSocket = accept(listenSocket, NULL, NULL);
+						SOCKET* clientSocket = new SOCKET;
+						*clientSocket = accept(listenSocket, NULL, NULL);
 
-						if (clientSocket != INVALID_SOCKET)
+						if (*clientSocket != INVALID_SOCKET)
 						{
 							std::cout << "Connection accepted!" << std::endl;
+							clients.insert(*clientSocket);
 
-							int recvStatus = 0;
-							int recvBytes = 0;
-
-							do {
-								recvStatus = recv(clientSocket, (char*)buff, BUFF_SIZE * sizeof(*buff), 0);
-								recvBytes += recvStatus;
-							} while (recvStatus > 0);
-
-							if (recvStatus < 0)
-							{
-								closesocket(clientSocket);
-								break;
-							}
-
-							clients.insert(clientSocket);
-
-							auto it = clients.begin();
-							while (it != clients.end())
-							{
-								if (*it != clientSocket && send(*it, (char*)buff, recvBytes, 0) == SOCKET_ERROR)
-								{
-									closesocket(*it);
-									it = clients.erase(it);
-								}
-								else
-								{
-									it++;
-								}
-							}
+							CreateThread(NULL, NULL, &ClientThread, (void*)clientSocket, NULL, NULL);
 						}
-					}
-
-					for (auto& client : clients)
-					{
-						closesocket(client);
 					}
 				}
 
@@ -89,6 +101,8 @@ int main() {
 
 		WSACleanup();
 	}
+
+	CloseHandle(ghMutex);
 
 	return 0;
 }
