@@ -28,9 +28,9 @@ DWORD WINAPI ClientThread(LPVOID lpParameter)
 
 	int recvStatus = 0;
 
-	do {
-		recvStatus = recv(*clientSocket, (char*)buff, BUFF_SIZE * sizeof(*buff), 0);
-
+	
+	while((recvStatus = recv(*clientSocket, (char*)buff, BUFF_SIZE * sizeof(*buff), 0)) > 0)
+	{
 		WaitForSingleObject(ghMutex, INFINITE);
 
 		auto it = clients.begin();
@@ -48,8 +48,7 @@ DWORD WINAPI ClientThread(LPVOID lpParameter)
 		}
 
 		ReleaseMutex(ghMutex);
-
-	} while (recvStatus > 0);
+	}
 
 	closesocket(*clientSocket);
 
