@@ -10,6 +10,11 @@ const float MainWindow::MARGIN_Y = 6.0F;
 const int MainWindow::BUFF_SIZE = 16384;
 wchar_t MainWindow::BUFF[BUFF_SIZE];
 
+SOCKET clientSocket;
+
+LPCWSTR DEFAULT_PORT = L"27015";
+LPCWSTR DEFAULT_ADDRESS = L"localhost";
+
 MainWindow::MainWindow(PCWSTR CLASS_NAME) :
     BaseWindow<MainWindow>(CLASS_NAME)
 {
@@ -19,12 +24,20 @@ MainWindow::~MainWindow()
 {
 }
 
+
+
+void SetupConnection()
+{
+    clientSocket
+}
+
 LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
     case WM_CREATE:
         CreateLayout();
+        SetupConnection();
         return 0;
 
     case WM_PAINT:
