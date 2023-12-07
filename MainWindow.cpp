@@ -23,6 +23,7 @@ SOCKET connectSocket;
 LPCWSTR PORT = L"27015";
 LPCWSTR ADDRESS = L"localhost";
 
+HANDLE thread;
 
 std::wstring currentChat;
 
@@ -49,7 +50,7 @@ DWORD WINAPI ServerThread(LPVOID lpParameter)
 
     while((recvStatus = recv(connectSocket, (char*)buff, BUFF_SIZE * sizeof(*buff), 0)) > 0)
     {
-        currentChat = std::wstring(BUFF) + L"\n\n\n" + currentChat;
+        currentChat = std::wstring(buff) + L"\n\n\n" + currentChat;
         currentChat.resize(BUFF_SIZE);
         SetWindowTextW(chat, currentChat.c_str());
     }
@@ -84,7 +85,7 @@ DWORD SetupConnection()
                 {
                     FreeAddrInfoW(result);
 
-                    CreateThread(NULL, NULL, &ServerThread, NULL, NULL, NULL);
+                    thread = CreateThread(NULL, NULL, &ServerThread, NULL, NULL, NULL);
                     return 0;
                 }
 
@@ -133,6 +134,11 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_CLOSE:
         ReleaseConnection();
+        DestroyWindow(m_hwnd);
+        return 0;
+
+    case WM_DESTROY:
+        PostQuitMessage(0);
         return 0;
 
     /*case WM_SIZING:
