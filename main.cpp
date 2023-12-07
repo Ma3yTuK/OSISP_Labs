@@ -1,144 +1,94 @@
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <windows.h>
-#include <Windowsx.h>
-#include <d2d1.h>
-#include <Winuser.h>
-
-#include <list>
-#include <memory>
-
-using namespace std;
-
-#pragma comment(lib, "d2d1")
-#pragma comment(lib, "Ntdll")
-#pragma comment(lib, "Comctl32")
-
-#include <objidl.h>
-#include <gdiplus.h>
-#include <winternl.h>
-#include <CommCtrl.h>
-#include <ctime>
-#include <cstdlib>
-#include <string>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#include <stdio.h>
+#include <set>
 #include <iostream>
 
-HANDLE forksSemathore;
+#pragma comment(lib, "Ws2_32.lib")
 
-enum State
-{
-    eating,
-    waiting,
-    thinking
-};
+const LPCWSTR PORT = L"27015";
 
-struct philosopher
-{
-    bool leftForkOwner;
-    HANDLE leftForkMutex;
-    State state;
-    clock_t inactiveWaitingStart;
-};
+std::set<SOCKET> clients;
 
-const long long MAX_THINKING_TIME = 1000000;
-const long long MAX_EATING_TIME = 1000000;
-LPCWSTR timer_name = L"ttimer";
-LPCWSTR semathore_name = L"semathore";
+const size_t BUFF_SIZE = 16384;
 
-size_t PHILOSOPHERS_COUNT = 5;
-philosopher* PHILOSOPHERS = new philosopher[PHILOSOPHERS_COUNT]();
+int main() {
+	wchar_t* buff = new wchar_t[BUFF_SIZE];
 
-DWORD WINAPI MyThreadFunction(LPVOID lpParam)
-{
-    size_t id = (size_t)lpParam;
-    DWORD thread_id = GetCurrentThreadId();
-    philosopher& phil = PHILOSOPHERS[id];
-    philosopher& nextPhil = PHILOSOPHERS[(id + 1) % PHILOSOPHERS_COUNT];
+	WSADATA wsaData;
 
-    HANDLE timer = CreateWaitableTimerW(NULL, FALSE, (std::to_wstring(id) + timer_name).c_str());
+	if (!WSAStartup(MAKEWORD(2, 2), &wsaData))
+	{
+		ADDRINFOW* result = NULL;
 
-    while (true)
-    {
-       phil.state = thinking;
+		if (!GetAddrInfoW(NULL, PORT, NULL, &result))
+		{
+			SOCKET listenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 
-       LARGE_INTEGER liDueTime;
-       liDueTime.QuadPart = -(long long)(rand()*777 % MAX_THINKING_TIME);
-       SetWaitableTimer(timer, &liDueTime, NULL, NULL, NULL, FALSE);
-       WaitForSingleObject(timer, INFINITE);
+			if (listenSocket != INVALID_SOCKET)
+			{
+				if (bind(listenSocket, result->ai_addr, result->ai_addrlen) != SOCKET_ERROR)
+				{
+					while (listen(listenSocket, SOMAXCONN) != SOCKET_ERROR)
+					{
+						SOCKET clientSocket = accept(listenSocket, NULL, NULL);
 
-       phil.state = waiting;
-       
-       phil.inactiveWaitingStart = clock();
+						if (clientSocket != INVALID_SOCKET)
+						{
+							std::cout << "Connection accepted!" << std::endl;
 
-       CONST HANDLE handles[] = { forksSemathore, phil.leftForkMutex };
+							int recvStatus = 0;
+							int recvBytes = 0;
 
-       WaitForMultipleObjects(2, handles, TRUE, INFINITE);
-       phil.leftForkOwner = TRUE;
-       WaitForSingleObject(nextPhil.leftForkMutex, INFINITE);
-       nextPhil.leftForkOwner = FALSE;
+							do {
+								recvStatus = recv(clientSocket, (char*)buff, BUFF_SIZE * sizeof(*buff), 0);
+								recvBytes += recvStatus;
+							} while (recvStatus > 0);
 
-       phil.state = eating;
+							if (recvStatus < 0)
+							{
+								closesocket(clientSocket);
+								break;
+							}
 
-       liDueTime.QuadPart = -(long long)(rand()*777 % MAX_EATING_TIME);
-       SetWaitableTimer(timer, &liDueTime, NULL, NULL, NULL, FALSE);
-       WaitForSingleObject(timer, INFINITE);
+							auto it = clients.begin();
+							while (it != clients.end())
+							{
+								if (send(*it, (char*)buff, recvBytes, 0) == SOCKET_ERROR)
+								{
+									closesocket(*it);
+									it = clients.erase(it);
+								}
+								else
+								{
+									it++;
+								}
+							}
 
-       phil.state = thinking;
+							clients.insert(clientSocket);
+						}
+					}
 
-       ReleaseMutex(phil.leftForkMutex);
-       ReleaseMutex(nextPhil.leftForkMutex);
-       ReleaseSemaphore(forksSemathore, 1, NULL);
+					for (auto& client : clients)
+					{
+						closesocket(client);
+					}
+				}
 
-       phil.leftForkOwner = FALSE;
-    }
+				closesocket(listenSocket);
+			}
 
-    CloseHandle(timer);
+			FreeAddrInfoW(result);
+		}
 
-    return 0;
-}
+		WSACleanup();
+	}
 
-void CALLBACK EverySecond(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue)
-{
-    for (size_t i = 0; i < PHILOSOPHERS_COUNT; i++)
-    {
-        philosopher& phil = PHILOSOPHERS[i];
-
-        if (phil.state == waiting)
-            std::cout << "(" << clock() - phil.inactiveWaitingStart << ")";
-        else if (phil.state == thinking)
-            std::cout << "(thinking)";
-        else
-            std::cout << "(eating)";
-        std::cout << std::endl;
-    }
-    std::cout << std::endl << std::endl;
-}
-
-int main(int argc, char** argv)
-{
-    srand(time(NULL));
-
-    forksSemathore = CreateSemaphore(NULL, PHILOSOPHERS_COUNT - 1, PHILOSOPHERS_COUNT - 1, semathore_name);
-
-    for (size_t i = 0; i < PHILOSOPHERS_COUNT; i++)
-    {
-        PHILOSOPHERS[i].state = thinking;
-        PHILOSOPHERS[i].leftForkMutex = CreateMutexW(NULL, NULL, std::to_wstring(i).c_str());
-    }
-
-    for (size_t i = 0; i < PHILOSOPHERS_COUNT; i++)
-    {
-        CreateThread(NULL, NULL, &MyThreadFunction, (LPVOID)i, NULL, NULL);
-    }
-
-    HANDLE timer = CreateWaitableTimerW(NULL, FALSE, timer_name);
-
-    LARGE_INTEGER liDueTime;
-    liDueTime.QuadPart = -1000LL;
-    SetWaitableTimer(timer, &liDueTime, 1000, &EverySecond, NULL, FALSE);
-
-    while (true)
-    {
-        SleepEx(INFINITE, TRUE);
-    }
-
-    return 0;
+	return 0;
 }
