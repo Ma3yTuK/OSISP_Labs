@@ -91,28 +91,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DPIScale.cpp" />
-    <ClCompile Include="KeyNode.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
-    <ClCompile Include="ValueNode.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BaseNode.h" />
     <ClInclude Include="BaseWindow.h" />
     <ClInclude Include="DPIScale.h" />
-    <ClInclude Include="KeyNode.h" />
     <ClInclude Include="MainWindow.h" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="ValueNode.h" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DeclareDPIAware.manifest" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

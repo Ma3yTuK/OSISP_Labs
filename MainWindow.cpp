@@ -1,9 +1,7 @@
 ﻿#include "MainWindow.h"
-#include "KeyNode.h"
-#include "ValueNode.h"
-#include "resource.h"
 
 #include <stdexcept>
+#include <CommCtrl.h>
 
 
 const PCWSTR MainWindow::DEFAULT_CLASS_NAME = L"Graphics";
@@ -26,74 +24,13 @@ const std::map<std::wstring, DWORD> MainWindow::types = {
 };
 
 MainWindow::MainWindow(PCWSTR CLASS_NAME) :
-    BaseWindow<MainWindow>(CLASS_NAME), selected(NULL)
+    BaseWindow<MainWindow>(CLASS_NAME)
 {
 }
 
 MainWindow::~MainWindow()
 {
 }
-
-void MainWindow::update()
-{
-    if (!selected)
-    {
-        SetWindowText(typeLabel, NULL);
-        SetWindowText(valueLabel, NULL);
-        EnableWindow(removeButton, FALSE);
-        EnableWindow(updateButton, FALSE);
-        EnableWindow(addButton, FALSE);
-        return;
-    }
-
-    ValueNode* value = dynamic_cast<ValueNode*>(selected);
-
-    if (value)
-    {
-        EnableWindow(removeButton, TRUE);
-        EnableWindow(addButton, FALSE);
-
-        DWORD type;
-        DWORD valueMaxSize = 16384;
-        BYTE* val = new BYTE[valueMaxSize];
-
-        value->get(&type, val, &valueMaxSize);
-
-        switch (type)
-        {
-        case REG_DWORD:
-        {
-            SetWindowText(typeLabel, L"Type: REG_DWORD");
-            std::wstring tmp = std::to_wstring(*(DWORD*)val);
-            SetWindowText(valueLabel, tmp.c_str());
-            EnableWindow(updateButton, TRUE);
-            break;
-        }
-        case REG_SZ:
-            SetWindowText(typeLabel, L"Type: REG_SZ");
-            SetWindowText(valueLabel, (LPWSTR)val);
-            EnableWindow(updateButton, TRUE);
-            break;
-        default:
-            SetWindowText(typeLabel, L"Type: unknown");
-            SetWindowText(valueLabel, NULL);
-            EnableWindow(updateButton, FALSE);
-            break;
-        }
-
-        delete[] val;   
-    }
-    else
-    {
-        SetWindowText(typeLabel, L"Type: key");
-        SetWindowText(valueLabel, NULL);
-        EnableWindow(removeButton, TRUE);
-        EnableWindow(updateButton, FALSE);
-        EnableWindow(addButton, TRUE);
-    }
-}
-
-//static HBRUSH hBrush = CreateSolidBrush(RGB(230, 2, 2));
 
 LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -172,7 +109,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         return TRUE;
     }*/
 
-    case WM_NOTIFY:
+    /*case WM_NOTIFY:
     {
         NMHDR* notification = (NMHDR*)lParam;
         switch (((NMHDR*)lParam)->code)
@@ -268,7 +205,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
             return 0;
         }
-        break;
+        break;*/
 
     /*case WM_CTLCOLORSTATIC:
     {
@@ -283,9 +220,9 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void MainWindow::CreateLayout()
 {
-    tree = CreateWindow(WC_TREEVIEW,
-        L"Tree view",
-        WS_VISIBLE | WS_CHILD | WS_BORDER | TVS_HASLINES | TVS_HASBUTTONS | TVS_LINESATROOT | TVS_SHOWSELALWAYS,
+    input = CreateWindow(L"EDIT",
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
         0,
@@ -295,30 +232,8 @@ void MainWindow::CreateLayout()
         GetModuleHandle(NULL),
         NULL);
 
-    addButton = CreateWindow(L"BUTTON",
-        L"Add",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
-        0,
-        0,
-        0,
-        0,
-        m_hwnd,
-        NULL,
-        GetModuleHandle(NULL),
-        NULL);
-    removeButton = CreateWindow(L"BUTTON",
-        L"Remove",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
-        0,
-        0,
-        0,
-        0,
-        m_hwnd,
-        NULL,
-        GetModuleHandle(NULL),
-        NULL);
-    updateButton = CreateWindow(L"BUTTON",
-        L"Edit value",
+    sendButton = CreateWindow(L"BUTTON",
+        L"Send",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_BORDER,
         0,
         0,
@@ -329,9 +244,9 @@ void MainWindow::CreateLayout()
         GetModuleHandle(NULL),
         NULL);
 
-    typeLabel = CreateWindow(L"STATIC",
+    chat = CreateWindow(L"STATIC",
         NULL,
-        WS_VISIBLE | WS_CHILD | SS_LEFT,
+        WS_VISIBLE | WS_CHILD | SS_LEFT | WS_BORDER,
         0,
         0,
         0,
@@ -340,25 +255,6 @@ void MainWindow::CreateLayout()
         NULL,
         GetModuleHandle(NULL),
         NULL);
-    valueLabel = CreateWindow(L"STATIC",
-        NULL,
-        WS_VISIBLE | WS_CHILD | SS_LEFT,
-        0,
-        0,
-        0,
-        0,
-        m_hwnd,
-        NULL,
-        GetModuleHandle(NULL),
-        NULL);
-
-    for (auto& i : KeyNode::PREDEFINED_NAMES)
-    {
-        KeyNode* key = new KeyNode(tree, i.first.c_str(), NULL);
-        key->initialize(1);
-    }
-
-    update();
 }
 
 void MainWindow::SetLayout()
@@ -371,171 +267,26 @@ void MainWindow::SetLayout()
     int WINDOW_HEIGHT_PIX = rcClient.bottom - rcClient.top;
     int WINDOW_WIDTH_PIX = rcClient.right - rcClient.left;
 
-    MoveWindow(tree,
+    MoveWindow(chat,
         MARGIN_XPix,
         MARGIN_YPix,
+        WINDOW_WIDTH_PIX - 2 * MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * 3 / 4 - MARGIN_YPix,
+        FALSE);
+
+    MoveWindow(input,
+        MARGIN_XPix,
+        MARGIN_YPix + WINDOW_HEIGHT_PIX * 3 / 4,
         WINDOW_WIDTH_PIX * 3 / 4 - MARGIN_XPix,
-        WINDOW_HEIGHT_PIX - MARGIN_YPix,
+        WINDOW_HEIGHT_PIX * 1 / 4 - 2 * MARGIN_YPix,
         FALSE);
 
-    MoveWindow(typeLabel,
-        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
-        MARGIN_YPix,
-        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
-        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
-        FALSE);
-
-    MoveWindow(valueLabel,
-        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
-        WINDOW_HEIGHT_PIX / 8 + MARGIN_YPix,
-        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
-        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
-        FALSE);
-
-    MoveWindow(addButton,
-        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
-        WINDOW_HEIGHT_PIX * (8 - 1) / 8 + MARGIN_YPix,
-        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
-        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
-        FALSE);
-
-    MoveWindow(updateButton,
-        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
-        WINDOW_HEIGHT_PIX * (8 - 2) / 8 + MARGIN_YPix,
-        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
-        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
-        FALSE);
-
-    MoveWindow(removeButton,
-        WINDOW_WIDTH_PIX * 3 / 4 + MARGIN_XPix,
-        WINDOW_HEIGHT_PIX * (8 - 3) / 8 + MARGIN_YPix,
-        WINDOW_WIDTH_PIX / 4 - MARGIN_XPix * 2,
-        WINDOW_HEIGHT_PIX / 8 - MARGIN_YPix * 2,
+    MoveWindow(sendButton,
+        MARGIN_XPix + WINDOW_WIDTH_PIX * 3 / 4,
+        MARGIN_YPix + WINDOW_HEIGHT_PIX * 3 / 4,
+        WINDOW_WIDTH_PIX * 1 / 4 - 2 * MARGIN_XPix,
+        WINDOW_HEIGHT_PIX * 1 / 4 - 2 * MARGIN_YPix,
         FALSE);
 
     InvalidateRect(m_hwnd, NULL, FALSE);
-}
-
-BOOL CALLBACK MainWindow::addDialogProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message)
-    {
-    case WM_INITDIALOG:
-    {
-        SetDlgItemTextW(hwndDlg, IDC_ITEM_NAME, currentName.c_str());
-        HWND comboBox = GetDlgItem(hwndDlg, IDC_TYPE);
-        for (auto& i : types)
-            ComboBox_AddString(comboBox, i.first.c_str());
-        ComboBox_AddString(comboBox, DEFAULT_TYPE);
-        SetDlgItemTextW(hwndDlg, IDC_TYPE, currentType.c_str());
-    }
-
-    case WM_COMMAND:
-        switch (LOWORD(wParam))
-        {
-        case IDOK:
-        {
-            LPWSTR name = new WCHAR[MAX_NAME_SIZE];
-
-            if (!GetDlgItemTextW(hwndDlg, IDC_ITEM_NAME, name, MAX_NAME_SIZE))
-                *name = 0;
-
-            currentName = name;
-
-            delete[] name;
-
-            LPWSTR type = new WCHAR[MAX_TYPE_SIZE];
-
-            if (!GetDlgItemTextW(hwndDlg, IDC_TYPE, type, MAX_TYPE_SIZE))
-                *type = 0;
-
-            currentType = type;
-
-            delete[] type;
-
-            succeded = true;
-            EndDialog(hwndDlg, wParam);
-            return TRUE;
-        }
-
-        case IDCANCEL:
-        {
-            succeded = false;
-            EndDialog(hwndDlg, wParam);
-            return TRUE;
-        }
-        }
-    }
-    return FALSE;
-}
-
-BOOL CALLBACK MainWindow::changeValueSzDialogProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        SetDlgItemTextW(hwndDlg, IDC_VALUE_SZ, currentSzValue.c_str());
-
-    case WM_COMMAND:
-        switch (LOWORD(wParam))
-        {
-        case IDOK:
-        {
-            LPWSTR value = new WCHAR[MAX_VALUE_SIZE];
-
-            if (!GetDlgItemTextW(hwndDlg, IDC_VALUE_SZ, value, MAX_VALUE_SIZE))
-                *value = 0;
-
-            currentSzValue = value;
-
-            delete[] value;
-
-            succeded = true;
-            EndDialog(hwndDlg, wParam);
-            return TRUE;
-        }
-
-        case IDCANCEL:
-        {
-            succeded = false;
-            EndDialog(hwndDlg, wParam);
-            return TRUE;
-        }
-        }
-    }
-    return FALSE;
-}
-
-BOOL CALLBACK MainWindow::changeValueDwordDialogProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        SetDlgItemInt(hwndDlg, IDC_VALUE_DWORD, currentDwordValue, TRUE);
-
-    case WM_COMMAND:
-        switch (LOWORD(wParam))
-        {
-        case IDOK:
-        {
-            BOOL success;
-            currentDwordValue = GetDlgItemInt(hwndDlg, IDC_VALUE_DWORD, &success, TRUE);
-
-            if (!success)
-                currentDwordValue = 0;
-
-            succeded = true;
-            EndDialog(hwndDlg, wParam);
-            return TRUE;
-        }
-
-        case IDCANCEL:
-        {
-            succeded = false;
-            EndDialog(hwndDlg, wParam);
-            return TRUE;
-        }
-        }
-    }
-    return FALSE;
 }
