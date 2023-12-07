@@ -7,21 +7,8 @@
 const PCWSTR MainWindow::DEFAULT_CLASS_NAME = L"Graphics";
 const float MainWindow::MARGIN_X = 6.0F;
 const float MainWindow::MARGIN_Y = 6.0F;
-const int MainWindow::MAX_NAME_SIZE = 256;
-const int MainWindow::MAX_TYPE_SIZE = 16;
-const int MainWindow::MAX_VALUE_SIZE = 16384;
-LPCWSTR MainWindow::DEFAULT_TYPE = L"key";
-
-std::wstring MainWindow::currentName = std::wstring();
-DWORD MainWindow::currentDwordValue = NULL;
-std::wstring MainWindow::currentSzValue = std::wstring();
-std::wstring MainWindow::currentType = std::wstring();
-bool MainWindow::succeded = false;
-
-const std::map<std::wstring, DWORD> MainWindow::types = {
-    { L"REG_SZ", REG_SZ },
-    { L"REG_DWORD", REG_DWORD }
-};
+const int MainWindow::BUFF_SIZE = 16384;
+wchar_t MainWindow::BUFF[BUFF_SIZE];
 
 MainWindow::MainWindow(PCWSTR CLASS_NAME) :
     BaseWindow<MainWindow>(CLASS_NAME)
@@ -130,82 +117,22 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
 
         break;
-    }
+    }*/
 
     case WM_COMMAND:
         if (HIWORD(wParam) == BN_CLICKED)
         {
-            if ((HWND)lParam == addButton)
+            if ((HWND)lParam == sendButton)
             {
-                currentName.clear();
-                currentType = DEFAULT_TYPE;
-
-                DialogBoxW(NULL, MAKEINTRESOURCEW(IDD_ADD_DIALOG), m_hwnd, (DLGPROC)addDialogProc);
-                if (succeded)
-                {
-                    if (currentType == DEFAULT_TYPE)
-                    {
-                        try
-                        {
-                            KeyNode* key = new KeyNode(tree, currentName.c_str(), (KeyNode*)selected);
-                        }
-                        catch (std::invalid_argument)
-                        {
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            ValueNode* value = new ValueNode(tree, currentName.c_str(), (KeyNode*)selected);
-                            value->set(types.at(currentType), NULL, NULL);
-                        }
-                        catch (std::invalid_argument)
-                        {
-                        }
-                    }
-                    ((KeyNode*)selected)->initialize(1);
-                }
-
-                update();
-            }
-            else if ((HWND)lParam == removeButton)
-            {
-                selected->remove();
-                delete selected;
-
-                selected = nullptr;
-
-                update();
-            }
-            else if ((HWND)lParam == updateButton)
-            {
-                DWORD type; 
-                ((ValueNode*)selected)->get(&type, NULL, NULL);
-
-                if (type == REG_SZ)
-                {
-                    DialogBoxW(NULL, MAKEINTRESOURCEW(IDD_CHANGE_SZ_DIALOG), m_hwnd, (DLGPROC)changeValueSzDialogProc);
-                    if (succeded)
-                    {
-                        ((ValueNode*)selected)->set(type, (BYTE*)currentSzValue.c_str(), currentSzValue.size() + 1);
-                    }
-                }
-                else if (type == REG_DWORD)
-                {
-                    DialogBoxW(NULL, MAKEINTRESOURCEW(IDD_CHANGE_DWORD_DIALOG), m_hwnd, (DLGPROC)changeValueDwordDialogProc);
-                    if (succeded)
-                    {
-                        ((ValueNode*)selected)->set(type, (BYTE*)&currentDwordValue, sizeof(DWORD));
-                    }
-                }
-
-                update();
+                GetWindowTextW(input, BUFF, BUFF_SIZE);
+                currentChat = std::wstring(BUFF) + L"\n\n\n" + currentChat;
+                SetWindowTextW(chat, currentChat.c_str());
+                SetWindowTextW(input, NULL);
             }
 
             return 0;
         }
-        break;*/
+        break;
 
     /*case WM_CTLCOLORSTATIC:
     {
