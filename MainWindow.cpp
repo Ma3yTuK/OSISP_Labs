@@ -11,18 +11,27 @@
 #include <stdexcept>
 #include <CommCtrl.h>
 
+#pragma comment(lib, "Ws2_32.lib")
+
 
 const PCWSTR MainWindow::DEFAULT_CLASS_NAME = L"Graphics";
-const float MainWindow::MARGIN_X = 6.0F;
-const float MainWindow::MARGIN_Y = 6.0F;
-const int MainWindow::BUFF_SIZE = 16384;
-wchar_t MainWindow::BUFF[BUFF_SIZE];
+const float MARGIN_X = 6.0F;
+const float MARGIN_Y = 6.0F;
+const int BUFF_SIZE = 16384;
+wchar_t BUFF[BUFF_SIZE];
 
 SOCKET connectSocket;
 
 LPCWSTR PORT = L"27015";
 LPCWSTR ADDRESS = L"localhost";
 const size_t BUFF_SIZE = 16384;
+
+
+std::wstring currentChat;
+
+HWND chat;
+HWND sendButton;
+HWND input;
 
 MainWindow::MainWindow(PCWSTR CLASS_NAME) :
     BaseWindow<MainWindow>(CLASS_NAME)
@@ -35,41 +44,21 @@ MainWindow::~MainWindow()
 
 DWORD WINAPI ServerThread(LPVOID lpParameter)
 {
-    currentChat = std::wstring(BUFF) + L"\n\n\n" + currentChat;
-    SetWindowTextW(chat, currentChat.c_str());
-    SetWindowTextW(input, NULL);
     SOCKET* clientSocket = (SOCKET*)lpParameter;
 
     wchar_t* buff = new wchar_t[BUFF_SIZE];
 
     int recvStatus = 0;
 
-    do {
-        recvStatus = recv(*clientSocket, (char*)buff, BUFF_SIZE * sizeof(*buff), 0);
+    while((recvStatus = recv(connectSocket, (char*)buff, BUFF_SIZE * sizeof(*buff), 0)) > 0)
+    {
+        currentChat = std::wstring(BUFF) + L"\n\n\n" + currentChat;
+        currentChat.resize(BUFF_SIZE);
+        SetWindowTextW(chat, currentChat.c_str());
+    }
 
-        WaitForSingleObject(ghMutex, INFINITE);
+    closesocket(connectSocket);
 
-        auto it = clients.begin();
-        while (it != clients.end())
-        {
-            if (send(*it, (char*)buff, recvStatus, 0) == SOCKET_ERROR)
-            {
-                closesocket(*it);
-                it = clients.erase(it);
-            }
-            else
-            {
-                it++;
-            }
-        }
-
-        ReleaseMutex(ghMutex);
-
-    } while (recvStatus > 0);
-
-    closesocket(*clientSocket);
-
-    delete clientSocket;
     delete[] buff;
 
     return 0;
