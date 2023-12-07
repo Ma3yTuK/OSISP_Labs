@@ -18,7 +18,7 @@ const float MainWindow::MARGIN_Y = 6.0F;
 const int MainWindow::BUFF_SIZE = 16384;
 wchar_t MainWindow::BUFF[BUFF_SIZE];
 
-SOCKET clientSocket;
+SOCKET connectSocket;
 
 LPCWSTR PORT = L"27015";
 LPCWSTR ADDRESS = L"localhost";
@@ -35,6 +35,9 @@ MainWindow::~MainWindow()
 
 DWORD WINAPI ServerThread(LPVOID lpParameter)
 {
+    currentChat = std::wstring(BUFF) + L"\n\n\n" + currentChat;
+    SetWindowTextW(chat, currentChat.c_str());
+    SetWindowTextW(input, NULL);
     SOCKET* clientSocket = (SOCKET*)lpParameter;
 
     wchar_t* buff = new wchar_t[BUFF_SIZE];
@@ -73,39 +76,33 @@ DWORD WINAPI ServerThread(LPVOID lpParameter)
 }
 
 
-void SetupConnection()
+DWORD SetupConnection()
 {
     WSADATA wsaData;
 
     if (!WSAStartup(MAKEWORD(2, 2), &wsaData))
     {
         ADDRINFOW* result = NULL;
-        hints->ai_socktype = SOCK_STREAM;
+        ADDRINFOW pHints = ADDRINFOW();
+        pHints.ai_family = AF_INET;
+        pHints.ai_socktype = SOCK_STREAM;
+        pHints.ai_protocol = IPPROTO_TCP;
 
-        if (!GetAddrInfoW(NULL, PORT, NULL, &result))
+        if (!GetAddrInfoW(NULL, PORT, &pHints, &result))
         {
-            SOCKET connectSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+            connectSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 
             if (connectSocket != INVALID_SOCKET)
             {
-                if (bind(listenSocket, result->ai_addr, result->ai_addrlen) != SOCKET_ERROR)
+                if (connect(connectSocket, result->ai_addr, result->ai_addrlen) != SOCKET_ERROR)
                 {
-                    while (listen(listenSocket, SOMAXCONN) != SOCKET_ERROR)
-                    {
-                        SOCKET* clientSocket = new SOCKET;
-                        *clientSocket = accept(listenSocket, NULL, NULL);
+                    FreeAddrInfoW(result);
 
-                        if (*clientSocket != INVALID_SOCKET)
-                        {
-                            std::cout << "Connection accepted!" << std::endl;
-                            clients.insert(*clientSocket);
-
-                            CreateThread(NULL, NULL, &ClientThread, (void*)clientSocket, NULL, NULL);
-                        }
-                    }
+                    CreateThread(NULL, NULL, &ServerThread, NULL, NULL, NULL);
+                    return 0;
                 }
 
-                closesocket(listenSocket);
+                closesocket(connectSocket);
             }
 
             FreeAddrInfoW(result);
@@ -117,13 +114,19 @@ void SetupConnection()
     return 1;
 }
 
+void ReleaseConnection()
+{
+    closesocket(connectSocket);
+    WSACleanup();
+}
+
 LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
     case WM_CREATE:
         CreateLayout();
-        SetupConnection();
+        while(SetupConnection());
         return 0;
 
     case WM_PAINT:
@@ -140,6 +143,10 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_SIZE:
         SetLayout();
+        return 0;
+
+    case WM_CLOSE:
+        ReleaseConnection();
         return 0;
 
     /*case WM_SIZING:
@@ -224,8 +231,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             if ((HWND)lParam == sendButton)
             {
                 GetWindowTextW(input, BUFF, BUFF_SIZE);
-                currentChat = std::wstring(BUFF) + L"\n\n\n" + currentChat;
-                SetWindowTextW(chat, currentChat.c_str());
+                send(connectSocket, (char*)BUFF, BUFF_SIZE * sizeof(*BUFF), NULL);
                 SetWindowTextW(input, NULL);
             }
 
