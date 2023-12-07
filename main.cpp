@@ -69,8 +69,10 @@ int main() {
 	if (!WSAStartup(MAKEWORD(2, 2), &wsaData))
 	{
 		ADDRINFOW* result = NULL;
+		ADDRINFOW* pHints = NULL;
+		pHints->ai_socktype = SOCK_STREAM;
 
-		if (!GetAddrInfoW(NULL, PORT, NULL, &result))
+		if (!GetAddrInfoW(NULL, PORT, pHints, &result))
 		{
 			SOCKET listenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 
