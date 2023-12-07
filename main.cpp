@@ -70,7 +70,10 @@ int main() {
 	{
 		ADDRINFOW* result = NULL;
 		ADDRINFOW pHints = ADDRINFOW();
+		pHints.ai_family = AF_INET;
 		pHints.ai_socktype = SOCK_STREAM;
+		pHints.ai_protocol = IPPROTO_TCP;
+		pHints.ai_flags = AI_PASSIVE;
 
 		if (!GetAddrInfoW(NULL, PORT, &pHints, &result))
 		{
