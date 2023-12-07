@@ -11,6 +11,7 @@ using namespace std;
 #pragma comment(lib, "d2d1")
 #pragma comment(lib, "Ntdll")
 #pragma comment(lib, "Comctl32")
+#pragma comment(lib, "Ws2_32.lib")
 
 #include "BaseWindow.h"
 #include "MainWindow.h"

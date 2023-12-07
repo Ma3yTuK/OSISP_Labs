@@ -11,8 +11,6 @@
 #include <stdexcept>
 #include <CommCtrl.h>
 
-#pragma comment(lib, "Ws2_32.lib")
-
 
 const PCWSTR MainWindow::DEFAULT_CLASS_NAME = L"Graphics";
 const float MARGIN_X = 6.0F;
@@ -24,7 +22,6 @@ SOCKET connectSocket;
 
 LPCWSTR PORT = L"27015";
 LPCWSTR ADDRESS = L"localhost";
-const size_t BUFF_SIZE = 16384;
 
 
 std::wstring currentChat;
