@@ -57,10 +57,12 @@ int main() {
 								break;
 							}
 
+							clients.insert(clientSocket);
+
 							auto it = clients.begin();
 							while (it != clients.end())
 							{
-								if (send(*it, (char*)buff, recvBytes, 0) == SOCKET_ERROR)
+								if (*it != clientSocket && send(*it, (char*)buff, recvBytes, 0) == SOCKET_ERROR)
 								{
 									closesocket(*it);
 									it = clients.erase(it);
@@ -70,8 +72,6 @@ int main() {
 									it++;
 								}
 							}
-
-							clients.insert(clientSocket);
 						}
 					}
 
