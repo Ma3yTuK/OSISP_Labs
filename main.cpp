@@ -10,10 +10,6 @@ using namespace std;
 #pragma comment(lib, "d2d1")
 
 #include "BaseWindow.h"
-#include "EllipseFigure.h"
-#include "resource.h"
-#include "GraphicsScene.h"
-#include "SceneControl.h"
 #include "MainWindow.h"
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)

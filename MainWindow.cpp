@@ -1,5 +1,4 @@
 ﻿#include "MainWindow.h"
-#include "helper_functions.h"
 
 #pragma comment(lib,"cabinet.lib")
 #pragma comment(lib, "Shlwapi.lib")
