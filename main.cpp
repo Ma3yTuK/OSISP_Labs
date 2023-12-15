@@ -13,7 +13,6 @@ using namespace std;
 #pragma comment(lib, "Comctl32")
 #pragma comment(lib, "Ws2_32.lib")
 
-#include "BaseWindow.h"
 #include "MainWindow.h"
 
 #include <objidl.h>
