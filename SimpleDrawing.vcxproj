@@ -88,39 +88,6 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="BaseFigure.cpp" />
-    <ClCompile Include="DPIScale.cpp" />
-    <ClCompile Include="EllipseFigure.cpp" />
-    <ClCompile Include="GraphicsScene.cpp" />
-    <ClCompile Include="helper_functions.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="MainWindow.cpp" />
-    <ClCompile Include="RectFigure.cpp" />
-    <ClCompile Include="SceneControl.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="BaseFigure.h" />
-    <ClInclude Include="BaseWindow.h" />
-    <ClInclude Include="DPIScale.h" />
-    <ClInclude Include="EllipseFigure.h" />
-    <ClInclude Include="GraphicsScene.h" />
-    <ClInclude Include="helper_functions.h" />
-    <ClInclude Include="MainWindow.h" />
-    <ClInclude Include="RectFigure.h" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="SceneControl.h" />
-    <ClInclude Include="settings.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="input.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="DeclareDPIAware.manifest" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\README.md" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
