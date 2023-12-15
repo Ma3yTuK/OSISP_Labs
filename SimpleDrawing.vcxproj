@@ -110,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
+    <None Include="Report.docx" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
